@@ -105,7 +105,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\FYP\vlfeat-0.9.20\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20;C:\FYP\vlfeat-0.9.20\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,8 +113,7 @@
       <AdditionalDependencies>vl.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)
-copy C:\FYP\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)</Command>
+      <Command>copy D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

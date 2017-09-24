@@ -1,5 +1,5 @@
 ﻿  main.cpp
-  getDescripter.vcxproj -> C:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
-  getDescripter.vcxproj -> C:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
-  The system cannot find the drive specified.
+d:\fyp\trackingcpp\getdescripter\main.cpp(62): warning C4244: 'argument': conversion from 'double' to 'const unsigned __int64', possible loss of data
+  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
+  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
           1 file(s) copied.

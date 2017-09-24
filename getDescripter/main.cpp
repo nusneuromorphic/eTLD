@@ -33,8 +33,12 @@ using namespace std;
 #define tEND 10
 #define CalNUM 2
 #define LookUpCenter 10
-#define EC_NR 7
+#define EC_NR 10
 #define EC_NW 12
+#define ROItopleftrow 114
+#define ROItopleftcolumn 38
+#define ROIboxsizerow 45
+#define ROIboxsizecolumn 31
 
 /*void createCountMat(VlKDForest* forest, ECparam &ec, const string &str, Matrix &SVMwt, Matrix &SVMb);
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
@@ -48,28 +52,23 @@ int main()
 	double* vocab = new double[EC_NR * EC_NW * VOCABSIZE];
 
 	ifstream infile(initial_TD);
-	if (!infile)
-	{
+	if (!infile)	{
 		cerr << "Oops, unable to open .txt..." << endl;
 	}
-	else
-	{
-		for (int iy = 0; iy < VOCABSIZE; iy++)
-		{
-			for (int ix = 0; ix < EC_NR * EC_NW; ix++)
-			{
-				infile >> vocab[(iy*EC_NR * EC_NW) + ix];
-				std::cout << vocab[(iy * EC_NR * EC_NW) + ix] << '\t';
-			}
+	else	{
+		string str;
+		while(getline(infile, str))	{
+			spikes.push_back(infile);
+			std::cout << spikes[n] << '\t';
 		}
 		infile.close();
 	}
 
-	delete[] vocab;
-	vocab = NULL;
+	vector <double> ROI;
+	vector <double> nonROI;
+
 	system("pause");
 	return 0;
 	
 }
-
 
