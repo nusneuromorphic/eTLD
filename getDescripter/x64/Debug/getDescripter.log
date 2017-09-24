@@ -1,8 +1,5 @@
 ﻿  main.cpp
-d:\fyp\trackingcpp\getdescripter\main.cpp(169): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(328): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(330): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(348): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
-  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
+  getDescripter.vcxproj -> C:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
+  getDescripter.vcxproj -> C:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
+  The system cannot find the drive specified.
           1 file(s) copied.
