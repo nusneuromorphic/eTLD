@@ -1,5 +1,4 @@
 ﻿  main.cpp
-d:\fyp\trackingcpp\getdescripter\main.cpp(62): warning C4244: 'argument': conversion from 'double' to 'const unsigned __int64', possible loss of data
-  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
-  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
-          1 file(s) copied.
+d:\fyp\trackingcpp\getdescripter\main.cpp(109): error C2065: 'KMeans': undeclared identifier
+d:\fyp\trackingcpp\getdescripter\main.cpp(109): error C2065: 'kmeans': undeclared identifier
+d:\fyp\trackingcpp\getdescripter\main.cpp(109): error C2065: 'VLDistanceL2': undeclared identifier

@@ -1,8 +1,7 @@
 /********************************************
-Project: Real-time Recognition
-Auther: YANG HONG
-Date: 20/07/2017
-Verified Date: 06/09/2017
+Project: Event-Based Motion Tracking
+Author: JONATHAN LEE
+Date: 27/09/2017
 *********************************************/
 
 #include <iostream>
@@ -19,8 +18,11 @@ Verified Date: 06/09/2017
 #include <math.h>
 #include <numeric>
 extern "C" {
-#include "vl/kdtree.h"
-#include "vl/homkermap.h"
+	#include "vl/kdtree.h"
+	#include "vl/homkermap.h"
+	#include "vl/kmeans.h"
+	#include "vl/generic.h"
+	
 }
 
 using namespace std;
@@ -35,10 +37,10 @@ using namespace std;
 #define LookUpCenter 10
 #define EC_NR 10
 #define EC_NW 12
-#define ROItopleftrow 114
-#define ROItopleftcolumn 38
-#define ROIboxsizerow 45
-#define ROIboxsizecolumn 31
+#define ROItopLeftX 114
+#define ROItopLeftY 38
+#define ROIboxSizeX 45
+#define ROIboxSizeY 31
 
 /*void createCountMat(VlKDForest* forest, ECparam &ec, const string &str, Matrix &SVMwt, Matrix &SVMb);
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
@@ -49,23 +51,61 @@ inline void readNumToMat(Matrix &mat, string str);*/
 int main()
 {
 	string initial_TD = "../initialTD.txt";
-	double* vocab = new double[EC_NR * EC_NW * VOCABSIZE];
+	vector <double> allEvents;
 
 	ifstream infile(initial_TD);
 	if (!infile)	{
 		cerr << "Oops, unable to open .txt..." << endl;
 	}
-	else	{
-		string str;
-		while(getline(infile, str))	{
-			spikes.push_back(infile);
-			std::cout << spikes[n] << '\t';
+	else {
+		double ts, read_x, read_y, read_p;
+		while ((infile >> ts) && (ts < tEND)) {
+			allEvents.push_back(ts);
+			infile >> read_x;
+			allEvents.push_back(read_x);
+			infile >> read_y;
+			allEvents.push_back(read_y);
+			infile >> read_p;
+			//cout << "gcount:  " << gcount << '\t' << "ts: " << ts << endl;
 		}
-		infile.close();
 	}
 
+	// separating ROI from non-ROI
 	vector <double> ROI;
 	vector <double> nonROI;
+	for (int i = 0; i < allEvents.size(); i += 3) {
+		if ((allEvents.at(i + 1) >= ROItopLeftX) && (allEvents.at(i+1) <= ROItopLeftX + ROIboxSizeX) && (allEvents.at(i+2) >= ROItopLeftY) && (allEvents.at(i+2) <= ROItopLeftY + ROIboxSizeY)) {
+			for (int j = i; j < i + 3; j++) {
+				ROI.push_back(allEvents.at(j));
+			}
+		}
+		else {
+			for (int j = i; j < i + 3; j++) {
+				nonROI.push_back(allEvents.at(j));
+			}
+		}
+	}
+
+	/*cout << "ROI contains: \n";
+	for (int i = 0; i < ROI.size(); i += 3) {
+		for (int j = i; j < i + 3; j++) {
+			cout << '\t' << ROI.at(j);
+		}
+		cout << '\n';
+	}
+
+	cout << "non-ROI contains: \n";
+	for (int i = 0; i < nonROI.size(); i += 3) {
+		for (int j = i; j < i + 3; j++) {
+			cout << '\t' << nonROI.at(j);
+		}
+		cout << '\n';
+	}*/
+
+	double energy;
+	double * centers;
+
+	KMeans * kmeans = vl_kmeans_new(VLDistanceL2, VL_TYPE_FLOAT);
 
 	system("pause");
 	return 0;

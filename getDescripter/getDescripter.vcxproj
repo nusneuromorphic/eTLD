@@ -156,15 +156,15 @@ copy C:\FYP\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)</C
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="currSpikeArr.h" />
     <ClInclude Include="ECparam.h" />
     <ClInclude Include="Matrix.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vl.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
