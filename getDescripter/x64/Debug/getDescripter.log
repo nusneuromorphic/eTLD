@@ -1,4 +1,9 @@
 ﻿  main.cpp
-d:\fyp\trackingcpp\getdescripter\main.cpp(109): error C2065: 'KMeans': undeclared identifier
-d:\fyp\trackingcpp\getdescripter\main.cpp(109): error C2065: 'kmeans': undeclared identifier
-d:\fyp\trackingcpp\getdescripter\main.cpp(109): error C2065: 'VLDistanceL2': undeclared identifier
+d:\fyp\trackingcpp\getdescripter\main.cpp(158): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(166): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(223): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(225): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(243): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
+  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
+          1 file(s) copied.
