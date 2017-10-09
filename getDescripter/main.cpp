@@ -133,7 +133,7 @@ int main()
 		} // end while
 	} // end else
 
-	double * vocab = new double[EC_NR * EC_NW * VOCABSIZE];
+	//void const * vocab = new double[EC_NR * EC_NW * VOCABSIZE];
 
 	VlKMeans * kmeans = vl_kmeans_new(VL_TYPE_FLOAT, VlDistanceL2);
 	vl_kmeans_set_algorithm(kmeans, VlKMeansANN);
@@ -141,12 +141,17 @@ int main()
 	vl_kmeans_set_max_num_iterations(kmeans, 100);
 	vl_kmeans_refine_centers(kmeans, &allDescs[0], allDescs.size());
 
-	vocab = (double*)vl_kmeans_get_centers(kmeans);
+	/*void const * vocab = vl_kmeans_get_centers(kmeans);
+	double * vocab2 = (double*)vocab;
+
+	for (int i = 0; i < VOCABSIZE; i++) {
+		cout << vocab2[i] << '\t';
+	}*/
 
 	// build a tree.
 	VlKDForest* forest = vl_kdforest_new(VL_TYPE_DOUBLE, EC_NR * EC_NW, 1, VlDistanceL2);
-	vl_kdforest_build(forest, VOCABSIZE, vocab);
-	//vl_kdforest_set_max_num_comparisons(forest, 15);
+	vl_kdforest_build(forest, VOCABSIZE, vl_kmeans_get_centers(kmeans));
+	vl_kdforest_set_max_num_comparisons(forest, 15);
 
 	// build ROI histogram and nonROI histogram
 	VlKDForestNeighbor neighbors[1]; // a structure
