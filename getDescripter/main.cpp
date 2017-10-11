@@ -76,9 +76,9 @@ int main()
 
 	ECparam ec(7, 12, 2, 10, 100, 1000);
 	string initial_TD = "../initialTD.txt";
-	vector <vector<double>> allDescs;
-	vector <vector<double>> ROIDescs;
-	vector <vector<double>> nonROIDescs;
+	vector <double> allDescs;
+	vector <double> ROIDescs;
+	vector <double> nonROIDescs;
 
 	vector<string> objList = { "0","1" };
 	Matrix t_wedge(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
@@ -106,12 +106,12 @@ int main()
 
 				vector<double> desc;
 				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
-				allDescs.push_back(desc);
+				allDescs.insert(allDescs.end(), desc.begin(), desc.end());
 				if ((x >= ROItopLeftX) && (x <= ROItopLeftX + ROIboxSizeX) && (y >= ROItopLeftY) && (y <= ROItopLeftY + ROIboxSizeY)) {
-					ROIDescs.push_back(desc);
+					ROIDescs.insert(ROIDescs.end(), desc.begin(), desc.end());
 				}
 				else {
-					nonROIDescs.push_back(desc);
+					nonROIDescs.insert(nonROIDescs.end(), desc.begin(), desc.end());
 				}
 				
 				descriptor_count++;
@@ -135,9 +135,9 @@ int main()
 
 	//void const * vocab = new double[EC_NR * EC_NW * VOCABSIZE];
 
-	VlKMeans * kmeans = vl_kmeans_new(VL_TYPE_FLOAT, VlDistanceL2);
+	VlKMeans * kmeans = vl_kmeans_new(VL_TYPE_DOUBLE, VlDistanceL2);
 	vl_kmeans_set_algorithm(kmeans, VlKMeansANN);
-	vl_kmeans_init_centers_with_rand_data(kmeans, &allDescs[0], 2, allDescs.size(), VOCABSIZE);
+	vl_kmeans_init_centers_with_rand_data(kmeans, &allDescs[0], 84, allDescs.size(), VOCABSIZE);
 	vl_kmeans_set_max_num_iterations(kmeans, 100);
 	vl_kmeans_refine_centers(kmeans, &allDescs[0], allDescs.size());
 
@@ -158,7 +158,7 @@ int main()
 	VlKDForestSearcher* searcherObj = vl_kdforest_new_searcher(forest);
 
 	for (int i = 0; i < ROIDescs.size(); i++) {
-		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &ROIDescs[i].front());
+		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &ROIDescs[i]);
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		ROIhist[binsa_new]++;
@@ -166,7 +166,7 @@ int main()
 	}
 
 	for (int i = 0; i < nonROIDescs.size(); i++) {
-		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &nonROIDescs[i].front());
+		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &nonROIDescs[i]);
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		nonROIhist[binsa_new]++;
