@@ -117,7 +117,7 @@ int main()
 				descriptor_count++;
 
 			}
-			/*if (countEvents>ec.maxNumEvents)// Should we reset count_matrix?
+			if (countEvents>ec.maxNumEvents)// Should we reset count_matrix?
 			{
 				// reset count_matrix, reset countEvents
 				countEvents = 1;
@@ -129,28 +129,33 @@ int main()
 					}
 				}
 
-			}*/ // end if
+			} // end if
 		} // end while
 	} // end else
 
 	//void const * vocab = new double[EC_NR * EC_NW * VOCABSIZE];
-
+	int all_desc_size = allDescs.size();
+	double* allD = new double[all_desc_size];
+	allD = &allDescs[0];
+	cout << allD[5] << ' ' << allD[6] << endl;
 	VlKMeans * kmeans = vl_kmeans_new(VL_TYPE_DOUBLE, VlDistanceL2);
+	kmeans->verbosity = 1;
 	vl_kmeans_set_algorithm(kmeans, VlKMeansANN);
-	vl_kmeans_init_centers_with_rand_data(kmeans, &allDescs[0], 84, allDescs.size(), VOCABSIZE);
+	vl_kmeans_init_centers_with_rand_data(kmeans, allD, 84, descriptor_count, VOCABSIZE);
 	vl_kmeans_set_max_num_iterations(kmeans, 100);
-	vl_kmeans_refine_centers(kmeans, &allDescs[0], allDescs.size());
+	vl_kmeans_refine_centers(kmeans, allD, descriptor_count);
+	
+	void const * vocab = vl_kmeans_get_centers(kmeans);
+	double * vocab2 = new double[VOCABSIZE * EC_NR * EC_NW];
+	vocab2 = (double*)vocab;
 
-	/*void const * vocab = vl_kmeans_get_centers(kmeans);
-	double * vocab2 = (double*)vocab;
-
-	for (int i = 0; i < VOCABSIZE; i++) {
+	/*for (int i = 0; i <= VOCABSIZE * EC_NR * EC_NW; i++) {
 		cout << vocab2[i] << '\t';
 	}*/
 
 	// build a tree.
 	VlKDForest* forest = vl_kdforest_new(VL_TYPE_DOUBLE, EC_NR * EC_NW, 1, VlDistanceL2);
-	vl_kdforest_build(forest, VOCABSIZE, vl_kmeans_get_centers(kmeans));
+	vl_kdforest_build(forest, VOCABSIZE, vocab2);
 	vl_kdforest_set_max_num_comparisons(forest, 15);
 
 	// build ROI histogram and nonROI histogram
