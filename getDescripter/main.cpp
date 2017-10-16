@@ -77,8 +77,8 @@ int main()
 	ECparam ec(7, 12, 2, 10, 100, 1000);
 	string initial_TD = "../initialTD.txt";
 	vector <double> allDescs;
-	vector <double> ROIDescs;
-	vector <double> nonROIDescs;
+	vector <vector<double>> ROIDescs;
+	vector <vector<double>> nonROIDescs;
 
 	vector<string> objList = { "0","1" };
 	Matrix t_wedge(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
@@ -103,15 +103,14 @@ int main()
 			countMat[y][x] += 1;
 
 			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents) && (countMat[y][x] <= REFRACTORY_COUNT))  {
-
 				vector<double> desc;
 				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 				allDescs.insert(allDescs.end(), desc.begin(), desc.end());
 				if ((x >= ROItopLeftX) && (x <= ROItopLeftX + ROIboxSizeX) && (y >= ROItopLeftY) && (y <= ROItopLeftY + ROIboxSizeY)) {
-					ROIDescs.insert(ROIDescs.end(), desc.begin(), desc.end());
+					ROIDescs.push_back(desc);
 				}
 				else {
-					nonROIDescs.insert(nonROIDescs.end(), desc.begin(), desc.end());
+					nonROIDescs.push_back(desc);
 				}
 				
 				descriptor_count++;
@@ -137,7 +136,7 @@ int main()
 	int all_desc_size = allDescs.size();
 	double* allD = new double[all_desc_size];
 	allD = &allDescs[0];
-	cout << allD[5] << ' ' << allD[6] << endl;
+
 	VlKMeans * kmeans = vl_kmeans_new(VL_TYPE_DOUBLE, VlDistanceL2);
 	kmeans->verbosity = 1;
 	vl_kmeans_set_algorithm(kmeans, VlKMeansANN);
@@ -163,7 +162,7 @@ int main()
 	VlKDForestSearcher* searcherObj = vl_kdforest_new_searcher(forest);
 
 	for (int i = 0; i < ROIDescs.size(); i++) {
-		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &ROIDescs[i]);
+		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &ROIDescs[i].front());
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		ROIhist[binsa_new]++;
@@ -171,7 +170,7 @@ int main()
 	}
 
 	for (int i = 0; i < nonROIDescs.size(); i++) {
-		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &nonROIDescs[i]);
+		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &nonROIDescs[i].front());
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		nonROIhist[binsa_new]++;
@@ -185,9 +184,9 @@ int main()
 	vector <double> ROIsamples[1000];
 	vector <double> nonROIsamples[1000];
 
-	/*for (int i = 0; i < 1000; i++) {
-
-	}*/
+	for (int i = 0; i < 1000; i++) {
+		
+	}
 
 
 	system("pause");

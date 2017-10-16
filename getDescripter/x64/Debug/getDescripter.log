@@ -1,5 +1,5 @@
 ﻿  main.cpp
-d:\fyp\trackingcpp\getdescripter\main.cpp(137): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(136): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
 d:\fyp\trackingcpp\getdescripter\main.cpp(168): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
 d:\fyp\trackingcpp\getdescripter\main.cpp(176): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
 d:\fyp\trackingcpp\getdescripter\main.cpp(233): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
