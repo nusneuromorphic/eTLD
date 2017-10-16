@@ -6,6 +6,7 @@ Date: 27/09/2017
 
 #include <iostream>
 #include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 #include <vector>
 #include <fstream>
@@ -58,8 +59,8 @@ int main()
 	static int gcount = 0; // global event count
 	static int countEvents = 0;
 	static int descriptor_count = 0;
-	double ROIhist[VOCABSIZE];
-	double nonROIhist[VOCABSIZE];
+	int ROIhist[VOCABSIZE];
+	int nonROIhist[VOCABSIZE];
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -181,11 +182,20 @@ int main()
 
 	// bootstrapping
 
-	vector <double> ROIsamples[1000];
-	vector <double> nonROIsamples[1000];
+	vector<int> nextROISample;
+	vector<vector<int>> ROISamples;
+	vector<int> nextNonROISample;
+	vector<vector<int>> nonROISamples;
 
 	for (int i = 0; i < 1000; i++) {
-		
+		for (int j = 0; j < VOCABSIZE; j++) {
+			nextROISample.push_back(rand() % (ROIhist[j]+1));
+			nextNonROISample.push_back(rand() % (nonROIhist[j] + 1));
+		}
+		ROISamples.push_back(nextROISample);
+		nonROISamples.push_back(nextNonROISample);
+		nextROISample.clear();
+		nextNonROISample.clear();
 	}
 
 
