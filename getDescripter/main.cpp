@@ -12,6 +12,7 @@ Date: 27/09/2017
 #include <fstream>
 #include <string>
 #include <assert.h>
+#include <vl/svm.h>
 #include "Matrix.h"
 #include "ECparam.h"
 #include "currSpikeArr.h"
@@ -161,12 +162,15 @@ int main()
 	// build ROI histogram and nonROI histogram
 	VlKDForestNeighbor neighbors[1]; // a structure
 	VlKDForestSearcher* searcherObj = vl_kdforest_new_searcher(forest);
+	int ROItotal = 0;
+	int nonROItotal = 0;
 
 	for (int i = 0; i < ROIDescs.size(); i++) {
 		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &ROIDescs[i].front());
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		ROIhist[binsa_new]++;
+		ROItotal++;
 		//cout << "ROI: " << binsa_new << "+1.\n";
 	}
 
@@ -175,6 +179,7 @@ int main()
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		nonROIhist[binsa_new]++;
+		nonROItotal++;
 		//cout << "nonROI: " << binsa_new << "+1.\n";
 	}
 	
@@ -182,21 +187,49 @@ int main()
 
 	// bootstrapping
 
-	vector<int> nextROISample;
-	vector<vector<int>> ROISamples;
-	vector<int> nextNonROISample;
-	vector<vector<int>> nonROISamples;
+	vector<double> nextROISample;
+	vector<double> ROISamples;
+	vector<double> nextNonROISample;
+	vector<double> nonROISamples;
+	vector<double> allNormalizedSamples;
 
 	for (int i = 0; i < 1000; i++) {
 		for (int j = 0; j < VOCABSIZE; j++) {
 			nextROISample.push_back(rand() % (ROIhist[j]+1));
 			nextNonROISample.push_back(rand() % (nonROIhist[j] + 1));
+			//  histogram normalization
+			nextROISample[j] /= ROItotal;
+			nextNonROISample[j] /= nonROItotal;
 		}
-		ROISamples.push_back(nextROISample);
-		nonROISamples.push_back(nextNonROISample);
+		ROISamples.insert(ROISamples.end(), nextROISample.begin(), nextROISample.end());
+		nonROISamples.insert(nonROISamples.end(), nextNonROISample.begin(), nextNonROISample.end());
 		nextROISample.clear();
 		nextNonROISample.clear();
 	}
+
+	allNormalizedSamples.insert(allNormalizedSamples.end(), ROISamples.begin(), ROISamples.end());
+	allNormalizedSamples.insert(allNormalizedSamples.end(), nonROISamples.begin(), nonROISamples.end());
+	int totalSize = allNormalizedSamples.size();
+	double * SVMdata = new double[totalSize];
+	SVMdata = &allNormalizedSamples[0];
+
+
+	// homkermap
+	VlHomogeneousKernelMap* hom;
+	double * psi = new double[3];
+	double * all_psi = new double[totalSize * 3];;
+	hom = vl_homogeneouskernelmap_new(VlHomogeneousKernelChi2, 0.5, 1, -5, VlHomogeneousKernelMapWindowRectangular);
+	//vl_homogeneouskernelmap_new(kernelType, gamma, order, period, windowType);
+	for (int j = 0; j < allNormalizedSamples.size(); j++)
+	{
+		vl_homogeneouskernelmap_evaluate_d(hom, psi, 1, SVMdata[j]);
+		all_psi[3 * j] = psi[0];
+		all_psi[3 * j + 1] = psi[1];
+		all_psi[3 * j + 2] = psi[2];
+	}
+
+
+	//VlSvm * svm = vl_svm_new(VlSvmSolverSgd)
 
 
 	system("pause");
