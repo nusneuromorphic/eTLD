@@ -216,8 +216,9 @@ int main()
 
 	// homkermap
 	VlHomogeneousKernelMap* hom;
-	double * psi = new double[3];
-	double * all_psi = new double[totalSize * 3];;
+	//double * psi = new double[3];
+	double psi[3];
+	double * all_psi = new double[totalSize * 3];
 	hom = vl_homogeneouskernelmap_new(VlHomogeneousKernelChi2, 0.5, 1, -5, VlHomogeneousKernelMapWindowRectangular);
 	//vl_homogeneouskernelmap_new(kernelType, gamma, order, period, windowType);
 	for (int j = 0; j < allNormalizedSamples.size(); j++)
@@ -232,6 +233,8 @@ int main()
 	//VlSvm * svm = vl_svm_new(VlSvmSolverSgd)
 
 
+	delete[] all_psi;
+	all_psi = NULL;
 	system("pause");
 	return 0;
 	
