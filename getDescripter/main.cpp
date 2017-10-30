@@ -229,10 +229,27 @@ int main()
 		all_psi[3 * j + 2] = psi[2];
 	}
 
+	double labels[2000];
+	for (int i = 0; i < 1000; i++) {
+		labels[i] = 1;
+	}
+	for (int i = 1000; i < 2000; i++) {
+		labels[i] = -1;
+	}
 
-	//VlSvm * svm = vl_svm_new(VlSvmSolverSgd)
+	double lambda = 0.00005;
 
+	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, all_psi, VOCABSIZE * 3, 2000, labels, lambda);
+	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
+	// 9.3266e-06, C = 10, length(train_label) = 10722.
+	vl_svm_train(svm);
 
+	const double * model = vl_svm_get_model(svm);
+	double bias = vl_svm_get_bias(svm);
+
+	cout << "Model w = [ " << model[0] << " " << model[1] << " ], bias b = " << bias << "\n";
+
+	vl_svm_delete(svm);
 	delete[] all_psi;
 	all_psi = NULL;
 	system("pause");
