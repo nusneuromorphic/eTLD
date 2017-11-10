@@ -62,6 +62,7 @@ int main()
 	static int descriptor_count = 0;
 	int ROIhist[VOCABSIZE];
 	int nonROIhist[VOCABSIZE];
+	int event_tracking_rate = 0;
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -110,6 +111,7 @@ int main()
 				allDescs.insert(allDescs.end(), desc.begin(), desc.end());
 				if ((x >= ROItopLeftX) && (x <= ROItopLeftX + ROIboxSizeX) && (y >= ROItopLeftY) && (y <= ROItopLeftY + ROIboxSizeY)) {
 					ROIDescs.push_back(desc);
+					event_tracking_rate++;
 				}
 				else {
 					nonROIDescs.push_back(desc);
@@ -248,6 +250,204 @@ int main()
 	double bias = vl_svm_get_bias(svm);
 
 	cout << "Model w = [ " << model[0] << " " << model[1] << " ], bias b = " << bias << "\n";
+
+
+	// padding
+	int origBB_boxSizeX = ROIboxSizeX; // original bounding box
+	int origBB_boxSizeY = ROIboxSizeY;
+	int padBB_boxSizeX = origBB_boxSizeX + 2; // padded bounding box
+	int padBB_boxSizeY = origBB_boxSizeY + 2;
+
+	/*if (padBB_topLeftX < 0) padBB_topLeftX = 0; // checking for out of bounds
+	if (padBB_topLeftY < 0) padBB_topLeftY = 0;*/
+
+
+	// Sliding Window Lookup Table: BBLookupTable[HEIGHT][WIDTH][25x1]
+	vector<vector<vector<bool>>> BBLookupTable; // 3D Lookup Table of area = padded bounding box. Each pixel contains a 25x1 vector of which BBs they are in.
+	BBLookupTable.resize(padBB_boxSizeY);
+	for (int i = 0; i < padBB_boxSizeY; i++) {
+		BBLookupTable[i].resize(padBB_boxSizeX);
+		for (int j = 0; j < padBB_boxSizeX; j++) {
+			BBLookupTable[i][j].resize(25);
+			/*for (int k = 0; k < 25; k++) {
+				BBLookupTable[i][j][k] = true;
+			}*/
+		}
+	}
+
+
+	for (int i = 0; i < padBB_boxSizeY; i++) {
+		for (int j = 0; j < padBB_boxSizeX; j++) {
+			for (int k = 0; k < 5; k++) { // moving down
+				for (int l = 0; l < 5; l++) { // moving right
+					if (i <= k + origBB_boxSizeY && j <= l + origBB_boxSizeX)
+						BBLookupTable[i][j][(k * 5) + l] = true;
+					else
+						BBLookupTable[i][j][(k * 5) + l] = false;
+				}
+			}
+		}
+	}
+
+	int origBB_topLeftX = ROItopLeftX;
+	int origBB_topLeftY = ROItopLeftY;
+	int padBB_topLeftX = origBB_topLeftX - 2;
+	int padBB_topLeftY = origBB_topLeftY - 2;
+
+
+	// Generating 25 histograms for 25 sliding window candidates
+
+
+	cout << "Performing tracking.\n";
+	string tracking_TD = "../trackingTD.txt";
+	int x, y;
+	double ts, read_x, read_y, read_p;
+	countEvents = 0;
+	gcount = 0;
+
+	ifstream infile(tracking_TD);
+	if (!infile) {
+		cerr << "Oops, unable to open .txt..." << endl;
+	}
+	else {
+		while ((infile >> ts) && (ts < tEND)) {
+			infile >> read_x;
+			x = (int)read_x;
+			infile >> read_y;
+			y = (int)read_y;
+			infile >> read_p;
+			countEvents++;
+			gcount++;
+			countMat[y][x] += 1;
+
+			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents) && (countMat[y][x] <= REFRACTORY_COUNT)) {
+				vector<double> desc;
+				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
+				
+				vl_kdforestsearcher_query(searcherObj, neighbors, 1, &desc.front());
+				//vl_kdforest_query(forest, neighbors, 1, pass_desc);
+				int binsa_new = neighbors->index;
+				hist[binsa_new]++;
+				descriptor_count++;
+
+			}
+			if (countEvents > ec.maxNumEvents)// Should we reset count_matrix?
+			{
+				// reset count_matrix, reset countEvents
+				countEvents = 1;
+				for (int iy = 0; iy < cROW; iy++)
+				{
+					for (int ix = 0; ix < cCOL; ix++)
+					{
+						countMat[iy][ix] = 0;
+					}
+				}
+
+			} // end if
+
+			  // classify.. cout the result. reset bins
+			if (gcount >= EVENTS_PER_CLASSIFICATION)
+			{
+				rcgCnt++;
+				//histogram normalization
+				for (int j = 0; j < VOCABSIZE; j++)
+				{
+					hist[j] /= descriptor_count;
+				}
+				// homkermap
+				VlHomogeneousKernelMap* hom;
+				double psi[3], all_psi[VOCABSIZE * 3];
+				hom = vl_homogeneouskernelmap_new(VlHomogeneousKernelChi2, 0.5, 1, -5, VlHomogeneousKernelMapWindowRectangular);
+				//vl_homogeneouskernelmap_new(kernelType, gamma, order, period, windowType);
+				for (int j = 0; j < VOCABSIZE; j++)
+				{
+					vl_homogeneouskernelmap_evaluate_d(hom, psi, 1, hist[j]);
+					all_psi[3 * j] = psi[0];
+					all_psi[3 * j + 1] = psi[1];
+					all_psi[3 * j + 2] = psi[2];
+				}
+
+				// do the classification
+				double score[CalNUM];
+				double max_score = 0;
+				//double temp[VOCABSIZE*3];
+				double temp_sum = 0;
+				int class_events;
+				for (int j = 0; j < CalNUM; j++)
+				{
+					for (int i = 0; i < VOCABSIZE * 3; i++)
+					{
+						//temp[i] = SVMwt._matrix[j][i] * all_psi[i];
+						temp_sum = temp_sum + SVMwt._matrix[j][i] * all_psi[i];
+					}
+					//score[j] = accumulate(temp, temp + VOCABSIZE * 3, 0) + SVMb._matrix[0][j];
+					score[j] = temp_sum + SVMb._matrix[0][j];
+					temp_sum = 0;
+					if (j == 0)
+					{
+						max_score = score[j];
+						class_events = j;
+					}
+					else
+						if (score[j] > max_score)
+						{
+							max_score = score[j];
+							class_events = j;
+						}
+				}
+				objcnt[class_events]++;
+				probcnt[class_events] = objcnt[class_events] / rcgCnt;
+				std::cout << objList[class_events] << "(" << objcnt[class_events] << "/" << rcgCnt << ")\t";
+				for (int jj = 0; jj < CalNUM; jj++)
+					std::cout << probcnt[jj] << "\t";
+				std::cout << "\r";
+				if (rcgCnt > reset_num)
+				{
+					rcgCnt = 0;
+					for (int i = 0; i<CalNUM; i++)
+					{
+						objcnt[i] = 0;
+						probcnt[i] = 0;
+					}
+					std::cout << std::endl << std::endl << std::endl
+						<< "/////////Resetting the classification histogram/////////" << std::endl
+						<< "/////////Resetting the classification histogram/////////" << std::endl
+						<< std::endl << std::endl << std::endl;
+					std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+
+				}
+				else
+				{
+					if ((probcnt[class_events]>prob_threshold) && (rcgCnt>refresh_hist))
+					{
+						std::cout << std::endl << std::endl
+							<< "**********Move to the next @.@************ " << std::endl
+							<< "**********Move to the next @.@************ " << std::endl
+							<< "**********Move to the next @.@************ " << std::endl
+							<< "**********Move to the next @.@************ " << std::endl
+							<< "**********Move to the next @.@************ " << std::endl
+							<< "**********Move to the next @.@************ " << std::endl
+							<< std::endl << std::endl;
+						std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+						rcgCnt = 0;
+						for (int i = 0; i<CalNUM; i++)
+						{
+							objcnt[i] = 0;
+							probcnt[i] = 0;
+						}
+
+					}
+				}
+				for (int i = 0; i < VOCABSIZE; i++)
+					hist[i] = 0;
+				descriptor_count = 0;
+				gcount = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
+
+			}
+		} // end while
+	} // end else
+
+
 
 	vl_svm_delete(svm);
 	delete[] all_psi;
