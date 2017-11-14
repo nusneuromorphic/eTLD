@@ -296,6 +296,15 @@ int main()
 
 
 	// Generating 25 histograms for 25 sliding window candidates
+	vector<vector<int>> SWcandidate_hist;
+	SWcandidate_hist.resize(25);
+	for (int i = 0; i < 25; i++) {
+		SWcandidate_hist[i].resize(VOCABSIZE);
+		for (int j = 0; j < VOCABSIZE; j++) {
+			SWcandidate_hist[i][j] = 0;
+		}
+	}
+
 
 
 	cout << "Performing tracking.\n";
