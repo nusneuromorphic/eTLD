@@ -255,8 +255,8 @@ int main()
 	// padding
 	int origBB_boxSizeX = ROIboxSizeX; // original bounding box
 	int origBB_boxSizeY = ROIboxSizeY;
-	int padBB_boxSizeX = origBB_boxSizeX + 2; // padded bounding box
-	int padBB_boxSizeY = origBB_boxSizeY + 2;
+	int padBB_boxSizeX = origBB_boxSizeX + 4; // padded bounding box
+	int padBB_boxSizeY = origBB_boxSizeY + 4;
 
 	/*if (padBB_topLeftX < 0) padBB_topLeftX = 0; // checking for out of bounds
 	if (padBB_topLeftY < 0) padBB_topLeftY = 0;*/
@@ -280,7 +280,7 @@ int main()
 		for (int j = 0; j < padBB_boxSizeX; j++) {
 			for (int k = 0; k < 5; k++) { // moving down
 				for (int l = 0; l < 5; l++) { // moving right
-					if (i <= k + origBB_boxSizeY && j <= l + origBB_boxSizeX)
+					if ((i <= k + origBB_boxSizeY - 1) && (j <= l + origBB_boxSizeX - 1) && (i >= k) && (j >= l))
 						BBLookupTable[i][j][(k * 5) + l] = true;
 					else
 						BBLookupTable[i][j][(k * 5) + l] = false;
@@ -296,7 +296,7 @@ int main()
 
 
 	// Generating 25 histograms for 25 sliding window candidates
-	vector<vector<int>> SWcandidate_hist;
+	vector<vector<double>> SWcandidate_hist;
 	SWcandidate_hist.resize(25);
 	for (int i = 0; i < 25; i++) {
 		SWcandidate_hist[i].resize(VOCABSIZE);
@@ -313,33 +313,44 @@ int main()
 	double ts, read_x, read_y, read_p;
 	countEvents = 0;
 	gcount = 0;
+	int rcgCnt = 0;
+	double globalBestScore = 0;
+	int bestCandidate;
+	
 
-	ifstream infile(tracking_TD);
-	if (!infile) {
+	ifstream trackfile(tracking_TD);
+	if (!trackfile) {
 		cerr << "Oops, unable to open .txt..." << endl;
 	}
 	else {
-		while ((infile >> ts) && (ts < tEND)) {
-			infile >> read_x;
+		while ((trackfile >> ts) && (ts < tEND)) {
+			trackfile >> read_x;
 			x = (int)read_x;
-			infile >> read_y;
+			trackfile >> read_y;
 			y = (int)read_y;
-			infile >> read_p;
+			trackfile >> read_p;
 			countEvents++;
 			gcount++;
 			countMat[y][x] += 1;
 
-			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents) && (countMat[y][x] <= REFRACTORY_COUNT)) {
-				vector<double> desc;
-				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
-				
-				vl_kdforestsearcher_query(searcherObj, neighbors, 1, &desc.front());
-				//vl_kdforest_query(forest, neighbors, 1, pass_desc);
-				int binsa_new = neighbors->index;
-				hist[binsa_new]++;
-				descriptor_count++;
+			if ((x >= padBB_topLeftX) && (x < padBB_topLeftX + padBB_boxSizeX) && (y >= padBB_topLeftY) && (y < padBB_topLeftY + padBB_boxSizeY)) {
+				if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents) && (countMat[y][x] <= REFRACTORY_COUNT)) {
+					vector<double> desc;
+					getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 
+					vl_kdforestsearcher_query(searcherObj, neighbors, 1, &desc.front());
+					//vl_kdforest_query(forest, neighbors, 1, pass_desc);
+					int binsa_new = neighbors->index;
+					for (int i = 0; i < 25; i++) {
+						if (BBLookupTable[y - padBB_topLeftY][x - padBB_topLeftX][i] == true) {
+							SWcandidate_hist[i][binsa_new]++; // increment the histogram of the corresponding SW candidate
+						}
+					}
+					//cout << "Descriptor obtained\n";
+
+				}
 			}
+
 			if (countEvents > ec.maxNumEvents)// Should we reset count_matrix?
 			{
 				// reset count_matrix, reset countEvents
@@ -358,101 +369,113 @@ int main()
 			if (gcount >= EVENTS_PER_CLASSIFICATION)
 			{
 				rcgCnt++;
-				//histogram normalization
-				for (int j = 0; j < VOCABSIZE; j++)
-				{
-					hist[j] /= descriptor_count;
-				}
-				// homkermap
-				VlHomogeneousKernelMap* hom;
-				double psi[3], all_psi[VOCABSIZE * 3];
-				hom = vl_homogeneouskernelmap_new(VlHomogeneousKernelChi2, 0.5, 1, -5, VlHomogeneousKernelMapWindowRectangular);
-				//vl_homogeneouskernelmap_new(kernelType, gamma, order, period, windowType);
-				for (int j = 0; j < VOCABSIZE; j++)
-				{
-					vl_homogeneouskernelmap_evaluate_d(hom, psi, 1, hist[j]);
-					all_psi[3 * j] = psi[0];
-					all_psi[3 * j + 1] = psi[1];
-					all_psi[3 * j + 2] = psi[2];
-				}
+				for (int i = 0; i < 25; i++) { // perform classification for all 25 candidates
+					//histogram normalization
+					double histTotal = 0;
+					for (int j = 0; j < VOCABSIZE; j++) {
+						histTotal += SWcandidate_hist[i][j];
+					}
+					for (int j = 0; j < VOCABSIZE; j++) {
+						SWcandidate_hist[i][j] = SWcandidate_hist[i][j] / histTotal;
+					}
 
-				// do the classification
-				double score[CalNUM];
-				double max_score = 0;
-				//double temp[VOCABSIZE*3];
-				double temp_sum = 0;
-				int class_events;
-				for (int j = 0; j < CalNUM; j++)
-				{
-					for (int i = 0; i < VOCABSIZE * 3; i++)
+					// homkermap
+					VlHomogeneousKernelMap* hom;
+					double psi[3], all_psi[VOCABSIZE * 3];
+					hom = vl_homogeneouskernelmap_new(VlHomogeneousKernelChi2, 0.5, 1, -5, VlHomogeneousKernelMapWindowRectangular);
+					//vl_homogeneouskernelmap_new(kernelType, gamma, order, period, windowType);
+					for (int j = 0; j < VOCABSIZE; j++)
+					{
+						vl_homogeneouskernelmap_evaluate_d(hom, psi, 1, SWcandidate_hist[i][j]);
+						all_psi[3 * j] = psi[0];
+						all_psi[3 * j + 1] = psi[1];
+						all_psi[3 * j + 2] = psi[2];
+					}
+
+					// do the classification
+					double score = 0;
+					//double temp[VOCABSIZE*3];
+					double temp_sum = 0;
+					int class_events;
+
+					for (int j = 0; j < VOCABSIZE * 3; j++)
 					{
 						//temp[i] = SVMwt._matrix[j][i] * all_psi[i];
-						temp_sum = temp_sum + SVMwt._matrix[j][i] * all_psi[i];
+						temp_sum = temp_sum + model[j] * all_psi[j];
 					}
 					//score[j] = accumulate(temp, temp + VOCABSIZE * 3, 0) + SVMb._matrix[0][j];
-					score[j] = temp_sum + SVMb._matrix[0][j];
+					score = temp_sum + bias;
 					temp_sum = 0;
-					if (j == 0)
+					
+					/*objcnt[class_events]++;
+					probcnt[class_events] = objcnt[class_events] / rcgCnt;
+					std::cout << objList[class_events] << "(" << objcnt[class_events] << "/" << rcgCnt << ")\t";
+					for (int jj = 0; jj < CalNUM; jj++)
+						std::cout << probcnt[jj] << "\t";
+					std::cout << "\r";
+					if (rcgCnt > reset_num)
 					{
-						max_score = score[j];
-						class_events = j;
-					}
-					else
-						if (score[j] > max_score)
-						{
-							max_score = score[j];
-							class_events = j;
-						}
-				}
-				objcnt[class_events]++;
-				probcnt[class_events] = objcnt[class_events] / rcgCnt;
-				std::cout << objList[class_events] << "(" << objcnt[class_events] << "/" << rcgCnt << ")\t";
-				for (int jj = 0; jj < CalNUM; jj++)
-					std::cout << probcnt[jj] << "\t";
-				std::cout << "\r";
-				if (rcgCnt > reset_num)
-				{
-					rcgCnt = 0;
-					for (int i = 0; i<CalNUM; i++)
-					{
-						objcnt[i] = 0;
-						probcnt[i] = 0;
-					}
-					std::cout << std::endl << std::endl << std::endl
-						<< "/////////Resetting the classification histogram/////////" << std::endl
-						<< "/////////Resetting the classification histogram/////////" << std::endl
-						<< std::endl << std::endl << std::endl;
-					std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
-
-				}
-				else
-				{
-					if ((probcnt[class_events]>prob_threshold) && (rcgCnt>refresh_hist))
-					{
-						std::cout << std::endl << std::endl
-							<< "**********Move to the next @.@************ " << std::endl
-							<< "**********Move to the next @.@************ " << std::endl
-							<< "**********Move to the next @.@************ " << std::endl
-							<< "**********Move to the next @.@************ " << std::endl
-							<< "**********Move to the next @.@************ " << std::endl
-							<< "**********Move to the next @.@************ " << std::endl
-							<< std::endl << std::endl;
-						std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
 						rcgCnt = 0;
-						for (int i = 0; i<CalNUM; i++)
+						for (int i = 0; i < CalNUM; i++)
 						{
 							objcnt[i] = 0;
 							probcnt[i] = 0;
 						}
+						std::cout << std::endl << std::endl << std::endl
+							<< "/////////Resetting the classification histogram/////////" << std::endl
+							<< "/////////Resetting the classification histogram/////////" << std::endl
+							<< std::endl << std::endl << std::endl;
+						std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
 
 					}
-				}
-				for (int i = 0; i < VOCABSIZE; i++)
-					hist[i] = 0;
-				descriptor_count = 0;
-				gcount = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
+					else
+					{
+						if ((probcnt[class_events] > prob_threshold) && (rcgCnt > refresh_hist))
+						{
+							std::cout << std::endl << std::endl
+								<< "**********Move to the next @.@************ " << std::endl
+								<< "**********Move to the next @.@************ " << std::endl
+								<< "**********Move to the next @.@************ " << std::endl
+								<< "**********Move to the next @.@************ " << std::endl
+								<< "**********Move to the next @.@************ " << std::endl
+								<< "**********Move to the next @.@************ " << std::endl
+								<< std::endl << std::endl;
+							std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+							rcgCnt = 0;
+							for (int i = 0; i < CalNUM; i++)
+							{
+								objcnt[i] = 0;
+								probcnt[i] = 0;
+							}
 
-			}
+						}
+					}*/
+
+					if (score > globalBestScore) {
+						globalBestScore = score;
+						bestCandidate = i;
+					}
+
+					for (int j = 0; j < VOCABSIZE; j++)
+						SWcandidate_hist[i][j] = 0;
+					descriptor_count = 0;
+					gcount = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
+				}
+
+				origBB_topLeftX = origBB_topLeftX + (bestCandidate % 5) - 2;
+				origBB_topLeftY = origBB_topLeftY + (bestCandidate / 5) - 2;
+				if (origBB_topLeftX < 0)
+					origBB_topLeftX = 0;
+				if (origBB_topLeftY < 0)
+					origBB_topLeftY = 0;
+				padBB_topLeftX = origBB_topLeftX - 2;
+				padBB_topLeftY = origBB_topLeftY - 2;
+				globalBestScore = 0;
+
+				cout << "Best candidate: " << bestCandidate << "\n";
+			} // end classification
+
+
 		} // end while
 	} // end else
 
