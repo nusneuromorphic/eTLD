@@ -2,7 +2,7 @@
 Project: Real-time Recognition
 Auther: YANG HONG
 Date: 20/07/2017
-Verified Date: 06/09/2017
+Verified Date: 06/09/2017; 28/09/2017
 *********************************************/
 
 #include <iostream>
@@ -18,35 +18,46 @@ Verified Date: 06/09/2017
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <numeric>
+#include <opencv2/core/core.hpp>   
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>  
 extern "C" {
 #include "vl/kdtree.h"
 #include "vl/homkermap.h"
 }
 
 using namespace std;
+using namespace cv;
 
 #define VOCABSIZE 3000
-#define cROW 240 //ATIS
-#define cCOL 304 //ATIS
-//#define cROW 180 // DAVIS
-//#define cCOL 240 // DAVIS
+//#define cROW 240 //ATIS
+//#define cCOL 304 //ATIS
+#define cROW 180 // DAVIS
+#define cCOL 240 // DAVIS
 #define tEND 10 
-#define CalNUM 10
+#define CalNUM 4
 #define LookUpCenter 10
 #define EC_NR 7
 #define EC_NW 12
+#define ASSOC_SIZE 14524800
+#define DET_THRESHOLD 0.8
+#define OBJ_DET_NUM 2 //thumper
+#define Thump_Clusters 66
 
-void createCountMat(VlKDForest* forest, ECparam &ec, const string &str, Matrix &SVMwt, Matrix &SVMb);
+void createCountMat(VlKDForest* forest, ECparam &ec, const string &str, Matrix &SVMwt, Matrix &SVMb,
+	vector<int> &det_init, Mat &det_countMat);
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
 inline void readNumToMat(Matrix &mat, string str);
+void detector_initialization(vector<int> &det_init);
+inline void rescale(Mat &det_countMat, int a, int b);
 
 
 int main()
 {
-	ECparam ec(7, 12, 2, 10, 100, 1000);
+	ECparam ec(7, 12, 2, 10, 200, 5000);
 	double* vocab = new double[EC_NR * EC_NW * VOCABSIZE];
-	string str_v = "../vocab_NMNIST_ver2.txt";
+	string str_v = "../modelTD4cl_RBgen_DEMO_forDET_3000500010.txt";
 	ifstream infile(str_v);
 	if (!infile)
 	{
@@ -74,20 +85,53 @@ int main()
 	vl_kdforest_build(forest, VOCABSIZE, vocab);
 	vl_kdforest_set_max_num_comparisons(forest, 15);
 
+	
+	vector<int> det_init;
+	int det_arr[Thump_Clusters];
+	string str_detThump = "../det_init08_new.txt";
+	try 
+	{
+		ifstream infile(str_detThump);
+		if (!infile)
+		{
+			throw "Cannot-read-detector-initialization-file";
+		}
+		else
+		{
+			for (int i = 0; i < Thump_Clusters; i++)
+			{
+				infile >> det_arr[i];
+				std::cout << det_arr[i] << '\t';
+			}
+			infile.close();
+			det_init = { det_arr, det_arr + Thump_Clusters };
+		}
+	}
+	catch(char *str)
+	{
+		std::cout << str << std::endl;
+		detector_initialization(det_init);
+	}
+	std::cout << std::endl;
+	// create the detection count matrix using opencv
+	Mat det_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix  
+	//std::cout << "det_countMat=" << std::endl << " " << det_countMat << std::endl << std::endl;
+
 	// load svm
 	Matrix SVMwt(CalNUM, VOCABSIZE * 3), SVMb(1, CalNUM);
-	string str_w = "../SVMwt_NMNIST_noSPM.txt";
+	string str_w = "../svvmodel_DEMO_forDET_wt.txt";
 	readNumToMat(SVMwt, str_w);
 	/*cout << "SVMwt[2][6](should be 0.0134): " << SVMwt._matrix[2][6] << '\n'
 	<< "SVMwt[0][10](should be -0.042): " << SVMwt._matrix[0][10] << '\n'
 	<< "SVMwt[0][6819](should be 0.0232): " << SVMwt._matrix[0][6819] << endl;*/
-
-	string str_b = "../SVMbt_NMNIST_noSPM.txt";
+	string str_b = "../svvmodel_DEMO_forDET_b.txt";
 	readNumToMat(SVMb, str_b);
 
-	string str_e = "../sample9.txt";
-	createCountMat(forest, ec, str_e, SVMwt, SVMb);
+	string str_e = "../thumper_h1.txt";
+	createCountMat(forest, ec, str_e, SVMwt, SVMb, det_init, det_countMat);
 	vl_kdforest_delete(forest);
+
+	
 
 	delete[] vocab;
 	vocab = NULL;
@@ -96,15 +140,17 @@ int main()
 }
 
 
-void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix &SVMwt, Matrix &SVMb)
+void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix &SVMwt, Matrix &SVMb,
+	vector<int> &det_init, Mat &det_countMat)
 {
-	const int EVENTS_PER_CLASSIFICATION = 3809;
+	const int EVENTS_PER_CLASSIFICATION = 10000;
 	const int REFRACTORY_COUNT = 3;
 	const double prob_threshold = 0.80;
 	const int refresh_hist = 20;
 	const int reset_num = 50;
+	const int min_heat_map_count = 3000;
 
-	vector<string> objList = { "0","1", "2", "3","4","5","6","7","8","9","10" };
+	vector<string> objList = { "Background","Obstacle", "Thumper", "UAV" };
 	Matrix t_wedge(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
 	Matrix t_ring(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
 	ec.wedgeRing_lookupTable(t_ring, t_wedge);
@@ -116,6 +162,7 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 	static int gcount = 0; // global event count
 	static int countEvents = 0;
 	static int descriptor_count = 0;
+	static int heat_map_count = 0;
 	double hist[VOCABSIZE];
 
 	for (int i = 0; i<CalNUM; i++)
@@ -147,7 +194,7 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 	VlKDForestNeighbor neighbors[1]; // a structure
 	VlKDForestSearcher* searcherObj = vl_kdforest_new_searcher(forest);
 	// Accord 2000 events into countMat matrix
-	std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+	//std::cout << "Class \t\t BG \t OBS \t THP \t UAV \n";
 	while ((infile >> ts) && (ts<tEND))
 	{
 		infile >> read_x;
@@ -169,7 +216,35 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 			int binsa_new = neighbors->index;
 			hist[binsa_new]++;
 			descriptor_count++;
+			// accumulate detector heat map
+			vector<int>::iterator iter;
+			iter = find(det_init.begin(), det_init.end(), binsa_new);
+			if (iter != det_init.end())
+			{
 
+				int dot = det_countMat.at<uchar>(y, x);  // at<uchar>
+				det_countMat.at<uchar>(y, x) = ++dot;
+				//det_countMat.at<uchar>(y, x)++;
+				heat_map_count++;
+				if (heat_map_count >= min_heat_map_count)
+				{
+					rescale(det_countMat, 0, 255);
+					/*CvSize size = cvSize(det_countMat.col, det_countMat.row);
+					IplImage* image2 = cvCreateImage(size, 8, 3);
+					IplImage ipltemp = det_countMat;
+					cvCopy(&ipltemp, image2);
+					//image2->imageData = (char*)ipltemp;
+					cvNamedWindow("thumper", 1);
+					cvShowImage("thumper", image2);
+					waitKey(6000);
+					cvDestroyWindow("thumper");
+					cvReleaseImage(&image2);*/
+					namedWindow("Thumper", CV_WINDOW_AUTOSIZE);
+					imshow("Thumper", det_countMat);
+					waitKey(0);
+					destroyWindow("Thumper");
+				}
+			}
 		}
 		if (countEvents>ec.maxNumEvents)// Should we reset count_matrix?
 		{
@@ -236,7 +311,9 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 					}
 			}
 			objcnt[class_events]++;
-			probcnt[class_events] = objcnt[class_events] / rcgCnt;
+			for (int jj = 0; jj < CalNUM; jj++)
+				probcnt[jj] = objcnt[jj] / rcgCnt;
+			//probcnt[class_events] = objcnt[class_events] / rcgCnt;
 			std::cout << objList[class_events] << "(" << objcnt[class_events] << "/" << rcgCnt << ")\t";
 			for (int jj = 0; jj < CalNUM; jj++)
 				std::cout << probcnt[jj] << "\t";
@@ -253,7 +330,7 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 					<< "/////////Resetting the classification histogram/////////" << std::endl
 					<< "/////////Resetting the classification histogram/////////" << std::endl
 					<< std::endl << std::endl << std::endl;
-				std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+				std::cout << "Class \t\t BG \t OBS \t THP \t UAV \n";
 
 			}
 			else
@@ -268,7 +345,7 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 						<< "**********Move to the next @.@************ " << std::endl
 						<< "**********Move to the next @.@************ " << std::endl
 						<< std::endl << std::endl;
-					std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+					std::cout << "Class \t\t BG \t OBS \t THP \t UAV \n";
 					rcgCnt = 0;
 					for (int i = 0; i<CalNUM; i++)
 					{
@@ -283,7 +360,7 @@ void createCountMat(VlKDForest* forest, ECparam &ec, const string &str_e, Matrix
 			descriptor_count = 0;
 			gcount = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
 
-		}
+		}//end of classification
 
 	}
 }
@@ -394,3 +471,66 @@ void readNumToMat(Matrix &mat, string str)
 }
 
 
+void detector_initialization(vector<int> &det_init)
+{
+	double* cluster_tabulation = new double[VOCABSIZE];
+	for (int i = 0; i < VOCABSIZE; i++)
+	{
+		cluster_tabulation[i] = 0;
+	}
+	double per_class[CalNUM];
+	for (int j = 0; j < CalNUM; j++)
+	{
+		per_class[j] = 0;
+	}
+	Matrix assoc(1, ASSOC_SIZE), loctrain_label(1, ASSOC_SIZE);
+	string str_assoc = "../assoc.txt";
+	readNumToMat(assoc, str_assoc);
+	//std::cout << assoc._matrix[0][5] << std::endl;
+	string str_loctrain_label = "../loctrain_label.txt"; //I subtracted every elem by 1.
+	readNumToMat(loctrain_label, str_loctrain_label);
+	//std::cout << loctrain_label._matrix[0][3026000] << std::endl;
+	for (int i = 0; i < ASSOC_SIZE; i++)
+	{
+		cluster_tabulation[int(assoc._matrix[0][i] - 1)]++;
+	}
+
+	for (int j = 0; j < VOCABSIZE; j++)
+	{
+		for (int i = 0; i < ASSOC_SIZE; i++)
+		{
+			if (assoc._matrix[0][i] == (j + 1))
+			{
+				per_class[int(loctrain_label._matrix[0][i])]++;
+			}
+		}
+		for (int k = 0; k < CalNUM; k++)
+		{
+			per_class[k] = per_class[k] / cluster_tabulation[j];
+		}
+		if (per_class[OBJ_DET_NUM] > DET_THRESHOLD) // class 3 is thumper
+		{
+			//det_init.push_back(j + 1); // j+1 is the cluster number in MATLAB
+			det_init.push_back(j);
+		}
+	}
+	
+
+
+}
+
+void rescale(Mat &det_countMat, int a, int b)
+{
+	double min, max;
+	cv::minMaxIdx(det_countMat, &min, &max);
+	//int m = (int)min;
+	//int M = (int)max;
+	for (int i = 0; i < det_countMat.rows; i++)
+	{
+		for (int j = 0; j < det_countMat.cols; j++)
+		{
+			det_countMat.at<uchar>(i, j) = ((b - a)*(det_countMat.at<uchar>(i, j) - min) / (max - min) + a);
+		}
+	}
+	
+}

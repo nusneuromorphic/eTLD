@@ -35,14 +35,15 @@ using namespace std;
 //#define cROW 180 // DAVIS
 //#define cCOL 240 // DAVIS
 #define tEND 10
-#define CalNUM 2
 #define LookUpCenter 10
-#define EC_NR 7
+#define EC_NR 10
 #define EC_NW 12
 #define ROItopLeftX 114
 #define ROItopLeftY 38
 #define ROIboxSizeX 45
 #define ROIboxSizeY 31
+#define BOOTSTRAP 1000
+#define PADDING 2
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -50,19 +51,12 @@ void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL],
 
 int main()
 {
-	const int EVENTS_PER_CLASSIFICATION = 3809;
-	const int REFRACTORY_COUNT = 3;
-	const double prob_threshold = 0.80;
-	const int refresh_hist = 20;
-	const int reset_num = 50;
-
 	double countMat[cROW][cCOL];
 	static int gcount = 0; // global event count
 	static int countEvents = 0;
 	static int descriptor_count = 0;
 	int ROIhist[VOCABSIZE];
 	int nonROIhist[VOCABSIZE];
-	int event_tracking_rate = 0;
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -77,13 +71,12 @@ int main()
 	}
 
 
-	ECparam ec(7, 12, 2, 10, 100, 1000);
+	ECparam ec(EC_NR, EC_NW, 2, 10, 100, 1000);
 	string initial_TD = "../initialTD.txt";
 	vector <double> allDescs;
 	vector <vector<double>> ROIDescs;
 	vector <vector<double>> nonROIDescs;
 
-	vector<string> objList = { "0","1" };
 	Matrix t_wedge(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
 	Matrix t_ring(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
 	ec.wedgeRing_lookupTable(t_ring, t_wedge);
@@ -105,13 +98,12 @@ int main()
 			gcount++;
 			countMat[y][x] += 1;
 
-			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents) && (countMat[y][x] <= REFRACTORY_COUNT))  {
+			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents))  {
 				vector<double> desc;
 				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 				allDescs.insert(allDescs.end(), desc.begin(), desc.end());
 				if ((x >= ROItopLeftX) && (x <= ROItopLeftX + ROIboxSizeX) && (y >= ROItopLeftY) && (y <= ROItopLeftY + ROIboxSizeY)) {
 					ROIDescs.push_back(desc);
-					event_tracking_rate++;
 				}
 				else {
 					nonROIDescs.push_back(desc);
@@ -144,7 +136,7 @@ int main()
 	VlKMeans * kmeans = vl_kmeans_new(VL_TYPE_DOUBLE, VlDistanceL2);
 	kmeans->verbosity = 1;
 	vl_kmeans_set_algorithm(kmeans, VlKMeansANN);
-	vl_kmeans_init_centers_with_rand_data(kmeans, allD, 84, descriptor_count, VOCABSIZE);
+	vl_kmeans_init_centers_with_rand_data(kmeans, allD, EC_NR * EC_NW, descriptor_count, VOCABSIZE);
 	vl_kmeans_set_max_num_iterations(kmeans, 100);
 	vl_kmeans_refine_centers(kmeans, allD, descriptor_count);
 	
@@ -164,15 +156,12 @@ int main()
 	// build ROI histogram and nonROI histogram
 	VlKDForestNeighbor neighbors[1]; // a structure
 	VlKDForestSearcher* searcherObj = vl_kdforest_new_searcher(forest);
-	int ROItotal = 0;
-	int nonROItotal = 0;
 
 	for (int i = 0; i < ROIDescs.size(); i++) {
 		vl_kdforestsearcher_query(searcherObj, neighbors, 1, &ROIDescs[i].front());
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		ROIhist[binsa_new]++;
-		ROItotal++;
 		//cout << "ROI: " << binsa_new << "+1.\n";
 	}
 
@@ -181,7 +170,6 @@ int main()
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		nonROIhist[binsa_new]++;
-		nonROItotal++;
 		//cout << "nonROI: " << binsa_new << "+1.\n";
 	}
 	
@@ -194,19 +182,33 @@ int main()
 	vector<double> nextNonROISample;
 	vector<double> nonROISamples;
 	vector<double> allNormalizedSamples;
+	int nextROIrandom, nextNonROIrandom;
+	int ROItotal = 0;
+	int nonROItotal = 0;
 
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < BOOTSTRAP; i++) {
 		for (int j = 0; j < VOCABSIZE; j++) {
-			nextROISample.push_back(rand() % (ROIhist[j]+1));
-			nextNonROISample.push_back(rand() % (nonROIhist[j] + 1));
-			//  histogram normalization
+			nextROIrandom = rand() % (ROIhist[j] + 1);
+			ROItotal = ROItotal + nextROIrandom;
+			nextROISample.push_back(nextROIrandom);
+
+			nextNonROIrandom = rand() % (nonROIhist[j] + 1);
+			nonROItotal = nonROItotal + nextNonROIrandom;
+			nextNonROISample.push_back(nextNonROIrandom);
+		}
+
+		//  histogram normalization
+		for (int j = 0; j < VOCABSIZE; j++) {
 			nextROISample[j] /= ROItotal;
 			nextNonROISample[j] /= nonROItotal;
 		}
+
 		ROISamples.insert(ROISamples.end(), nextROISample.begin(), nextROISample.end());
 		nonROISamples.insert(nonROISamples.end(), nextNonROISample.begin(), nextNonROISample.end());
 		nextROISample.clear();
 		nextNonROISample.clear();
+		ROItotal = 0;
+		nonROItotal = 0;
 	}
 
 	allNormalizedSamples.insert(allNormalizedSamples.end(), ROISamples.begin(), ROISamples.end());
@@ -231,19 +233,18 @@ int main()
 		all_psi[3 * j + 2] = psi[2];
 	}
 
-	double labels[2000];
-	for (int i = 0; i < 1000; i++) {
+	double labels[BOOTSTRAP * 2];
+	for (int i = 0; i < BOOTSTRAP; i++) {
 		labels[i] = 1;
 	}
-	for (int i = 1000; i < 2000; i++) {
+	for (int i = BOOTSTRAP; i < BOOTSTRAP * 2; i++) {
 		labels[i] = -1;
 	}
 
-	double lambda = 0.00005;
+	double lambda = 0.00005;	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
 
 	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, all_psi, VOCABSIZE * 3, 2000, labels, lambda);
-	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
-	// 9.3266e-06, C = 10, length(train_label) = 10722.
+	// 9.3266e-06, C = 10, length(train_label) = 2000.
 	vl_svm_train(svm);
 
 	const double * model = vl_svm_get_model(svm);
@@ -255,8 +256,8 @@ int main()
 	// padding
 	int origBB_boxSizeX = ROIboxSizeX; // original bounding box
 	int origBB_boxSizeY = ROIboxSizeY;
-	int padBB_boxSizeX = origBB_boxSizeX + 4; // padded bounding box
-	int padBB_boxSizeY = origBB_boxSizeY + 4;
+	int padBB_boxSizeX = origBB_boxSizeX + (PADDING * 2); // padded bounding box
+	int padBB_boxSizeY = origBB_boxSizeY + (PADDING * 2);
 
 	/*if (padBB_topLeftX < 0) padBB_topLeftX = 0; // checking for out of bounds
 	if (padBB_topLeftY < 0) padBB_topLeftY = 0;*/
@@ -291,8 +292,8 @@ int main()
 
 	int origBB_topLeftX = ROItopLeftX;
 	int origBB_topLeftY = ROItopLeftY;
-	int padBB_topLeftX = origBB_topLeftX - 2;
-	int padBB_topLeftY = origBB_topLeftY - 2;
+	int padBB_topLeftX = origBB_topLeftX - PADDING;
+	int padBB_topLeftY = origBB_topLeftY - PADDING;
 
 
 	// Generating 25 histograms for 25 sliding window candidates
@@ -309,11 +310,13 @@ int main()
 
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../trackingTD.txt";
+	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 2 / 3;
 	int x, y;
 	double ts, read_x, read_y, read_p;
 	countEvents = 0;
 	gcount = 0;
 	int rcgCnt = 0;
+	int ROIEvents = 0;
 	double globalBestScore = 0;
 	int bestCandidate;
 	
@@ -334,7 +337,7 @@ int main()
 			countMat[y][x] += 1;
 
 			if ((x >= padBB_topLeftX) && (x < padBB_topLeftX + padBB_boxSizeX) && (y >= padBB_topLeftY) && (y < padBB_topLeftY + padBB_boxSizeY)) {
-				if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents) && (countMat[y][x] <= REFRACTORY_COUNT)) {
+				if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents)) {
 					vector<double> desc;
 					getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 
@@ -346,7 +349,7 @@ int main()
 							SWcandidate_hist[i][binsa_new]++; // increment the histogram of the corresponding SW candidate
 						}
 					}
-					//cout << "Descriptor obtained\n";
+					ROIEvents++;
 
 				}
 			}
@@ -468,6 +471,10 @@ int main()
 					origBB_topLeftX = 0;
 				if (origBB_topLeftY < 0)
 					origBB_topLeftY = 0;
+				if (origBB_topLeftY > cCOL)
+					origBB_topLeftY = cCOL;
+				if (origBB_topLeftX > cROW)
+					origBB_topLeftX = cROW;
 				padBB_topLeftX = origBB_topLeftX - 2;
 				padBB_topLeftY = origBB_topLeftY - 2;
 				globalBestScore = 0;
