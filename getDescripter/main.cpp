@@ -34,7 +34,7 @@ using namespace std;
 #define cCOL 304 //ATIS
 //#define cROW 180 // DAVIS
 //#define cCOL 240 // DAVIS
-#define tEND 10
+#define tEND 15
 #define LookUpCenter 10
 #define EC_NR 10
 #define EC_NW 12
@@ -88,7 +88,7 @@ int main()
 	else {
 		int x, y;
 		double ts, read_x, read_y, read_p;
-		while ((infile >> ts) && (ts < tEND)) {
+		while ((infile >> ts) && (!infile.eof())) {
 			infile >> read_x;
 			x = (int)read_x;
 			infile >> read_y;
@@ -369,7 +369,7 @@ int main()
 			} // end if
 
 			  // classify.. cout the result. reset bins
-			if (gcount >= EVENTS_PER_CLASSIFICATION)
+			if (ROIEvents >= EVENTS_PER_CLASSIFICATION)
 			{
 				rcgCnt++;
 				for (int i = 0; i < 25; i++) { // perform classification for all 25 candidates
@@ -461,8 +461,7 @@ int main()
 
 					for (int j = 0; j < VOCABSIZE; j++)
 						SWcandidate_hist[i][j] = 0;
-					descriptor_count = 0;
-					gcount = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
+					ROIEvents = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
 				}
 
 				origBB_topLeftX = origBB_topLeftX + (bestCandidate % 5) - 2;
