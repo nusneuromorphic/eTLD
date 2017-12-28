@@ -19,6 +19,7 @@ Date: 27/09/2017
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <numeric>
+#include <deque>
 extern "C" {
 	#include "vl/kdtree.h"
 	#include "vl/homkermap.h"
@@ -44,6 +45,7 @@ using namespace std;
 #define ROIboxSizeY 31
 #define BOOTSTRAP 1000
 #define PADDING 2
+#define QueueSize 500
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -57,6 +59,7 @@ int main()
 	static int descriptor_count = 0;
 	int ROIhist[VOCABSIZE];
 	int nonROIhist[VOCABSIZE];
+	
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -76,6 +79,7 @@ int main()
 	vector <double> allDescs;
 	vector <vector<double>> ROIDescs;
 	vector <vector<double>> nonROIDescs;
+	deque<int> eventQueue;
 
 	Matrix t_wedge(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
 	Matrix t_ring(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
@@ -95,7 +99,8 @@ int main()
 			y = (int)read_y;
 			infile >> read_p;
 			countEvents++;
-			gcount++;
+			eventQueue.push_back(x);
+			eventQueue.push_back(y);
 			countMat[y][x] += 1;
 
 			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents))  {
@@ -112,17 +117,14 @@ int main()
 				descriptor_count++;
 
 			}
-			if (countEvents>ec.maxNumEvents)// Should we reset count_matrix?
+			if (eventQueue.size() > (QueueSize * 2)) // Pop out the oldest event in the queue.
 			{
-				// reset count_matrix, reset countEvents
-				countEvents = 1;
-				for (int iy = 0; iy < cROW; iy++)
-				{
-					for (int ix = 0; ix < cCOL; ix++)
-					{
-						countMat[iy][ix] = 0;
-					}
-				}
+				x = eventQueue.front();
+				eventQueue.pop_front();
+				y = eventQueue.front();
+				eventQueue.pop_front();
+				countMat[y][x] -= 1;
+				countEvents--;
 
 			} // end if
 		} // end while
@@ -311,11 +313,10 @@ int main()
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../trackingTD.txt";
 	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 2 / 3;
+	eventQueue.clear();
 	int x, y;
 	double ts, read_x, read_y, read_p;
 	countEvents = 0;
-	gcount = 0;
-	int rcgCnt = 0;
 	int ROIEvents = 0;
 	double globalBestScore = 0;
 	int bestCandidate;
@@ -333,7 +334,8 @@ int main()
 			y = (int)read_y;
 			trackfile >> read_p;
 			countEvents++;
-			gcount++;
+			eventQueue.push_back(x);
+			eventQueue.push_back(y);
 			countMat[y][x] += 1;
 
 			if ((x >= padBB_topLeftX) && (x < padBB_topLeftX + padBB_boxSizeX) && (y >= padBB_topLeftY) && (y < padBB_topLeftY + padBB_boxSizeY)) {
@@ -354,24 +356,20 @@ int main()
 				}
 			}
 
-			if (countEvents > ec.maxNumEvents)// Should we reset count_matrix?
+			if (eventQueue.size() > (QueueSize * 2)) // Pop out the oldest event in the queue.
 			{
-				// reset count_matrix, reset countEvents
-				countEvents = 1;
-				for (int iy = 0; iy < cROW; iy++)
-				{
-					for (int ix = 0; ix < cCOL; ix++)
-					{
-						countMat[iy][ix] = 0;
-					}
-				}
+				x = eventQueue.front();
+				eventQueue.pop_front();
+				y = eventQueue.front();
+				eventQueue.pop_front();
+				countMat[y][x] -= 1;
+				countEvents--;
 
 			} // end if
 
 			  // classify.. cout the result. reset bins
 			if (ROIEvents >= EVENTS_PER_CLASSIFICATION)
 			{
-				rcgCnt++;
 				for (int i = 0; i < 25; i++) { // perform classification for all 25 candidates
 					//histogram normalization
 					double histTotal = 0;
@@ -494,6 +492,7 @@ int main()
 	return 0;
 	
 }
+
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge)
