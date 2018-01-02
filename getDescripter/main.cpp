@@ -16,6 +16,9 @@ Date: 27/09/2017
 #include "Matrix.h"
 #include "ECparam.h"
 #include "currSpikeArr.h"
+#include <opencv2/core/core.hpp>   
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp> 
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <numeric>
@@ -29,6 +32,7 @@ extern "C" {
 }
 
 using namespace std;
+using namespace cv;
 
 #define VOCABSIZE 200
 #define cROW 240 //ATIS
@@ -49,7 +53,7 @@ using namespace std;
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
-
+Mat rescale(Mat countMat, int a, int b);
 
 int main()
 {
@@ -320,6 +324,8 @@ int main()
 	int ROIEvents = 0;
 	double globalBestScore = 0;
 	int bestCandidate;
+	vector<int> det_init;
+	Mat disp_countMat1;
 	
 
 	ifstream trackfile(tracking_TD);
@@ -477,6 +483,22 @@ int main()
 				globalBestScore = 0;
 
 				cout << "Best candidate: " << bestCandidate << "\n";
+
+
+				// Display Sliding Window
+
+				disp_countMat1 = Mat(cROW, cCOL, CV_8UC1, &countMat);
+				Mat disp_countMat2 = rescale(disp_countMat1, 0, 255);
+				namedWindow("SW", CV_WINDOW_AUTOSIZE);
+				//cvSet("SW", CV_RGB(0, 0, 0));
+				imshow("SW", disp_countMat2);
+				Rect boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
+				rectangle(disp_countMat2, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
+				waitKey(0);
+				destroyWindow("SW");
+				
+
+
 			} // end classification
 
 
@@ -573,5 +595,23 @@ void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL],
 		cout << "We didn't get any spikes." << endl;
 	}
 	//return desc;
+}
+
+Mat rescale(Mat countMat, int a, int b)
+{
+	double min, max;
+	cv::minMaxIdx(countMat, &min, &max);
+	//int m = (int)min;
+	//int M = (int)max;
+	for (int i = 0; i < countMat.rows; i++)
+	{
+		for (int j = 0; j < countMat.cols; j++)
+		{
+			countMat.at<uchar>(i, j) = ((b - a)*(countMat.at<uchar>(i, j) - min) / (max - min) + a);
+		}
+	}
+
+	return countMat;
+
 }
 
