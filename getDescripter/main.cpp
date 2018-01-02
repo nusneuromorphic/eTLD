@@ -325,8 +325,9 @@ int main()
 	double globalBestScore = 0;
 	int bestCandidate;
 	vector<int> det_init;
-	Mat disp_countMat1;
-	
+	Mat disp_countMat1, disp_countMat2;
+	Rect boundingBox;
+	namedWindow("SW", CV_WINDOW_AUTOSIZE);
 
 	ifstream trackfile(tracking_TD);
 	if (!trackfile) {
@@ -376,6 +377,7 @@ int main()
 			  // classify.. cout the result. reset bins
 			if (ROIEvents >= EVENTS_PER_CLASSIFICATION)
 			{
+				rectangle(disp_countMat2, boundingBox, Scalar(0, 0, 0), 1, 8, 0);
 				for (int i = 0; i < 25; i++) { // perform classification for all 25 candidates
 					//histogram normalization
 					double histTotal = 0;
@@ -488,14 +490,13 @@ int main()
 				// Display Sliding Window
 
 				disp_countMat1 = Mat(cROW, cCOL, CV_8UC1, &countMat);
-				Mat disp_countMat2 = rescale(disp_countMat1, 0, 255);
-				namedWindow("SW", CV_WINDOW_AUTOSIZE);
+				disp_countMat2 = rescale(disp_countMat1, 0, 255);
+				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
+				rectangle(disp_countMat2, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				//cvSet("SW", CV_RGB(0, 0, 0));
 				imshow("SW", disp_countMat2);
-				Rect boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
-				rectangle(disp_countMat2, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				waitKey(0);
-				destroyWindow("SW");
+				
 				
 
 
@@ -506,7 +507,8 @@ int main()
 	} // end else
 
 
-
+	waitKey(0);
+	destroyWindow("SW");
 	vl_svm_delete(svm);
 	delete[] all_psi;
 	all_psi = NULL;
