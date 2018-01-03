@@ -49,11 +49,11 @@ using namespace cv;
 #define ROIboxSizeY 31
 #define BOOTSTRAP 1000
 #define PADDING 2
-#define QueueSize 500
+#define QueueSize 2000
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
-Mat rescale(Mat countMat, int a, int b);
+void rescale(Mat &countMat, int a, int b);
 
 int main()
 {
@@ -96,7 +96,7 @@ int main()
 	else {
 		int x, y;
 		double ts, read_x, read_y, read_p;
-		while ((infile >> ts) && (!infile.eof())) {
+		while ((infile >> ts) && (ts < 0.3) && (!infile.eof())) {
 			infile >> read_x;
 			x = (int)read_x;
 			infile >> read_y;
@@ -325,7 +325,7 @@ int main()
 	double globalBestScore = 0;
 	int bestCandidate;
 	vector<int> det_init;
-	Mat disp_countMat1, disp_countMat2;
+	Mat disp_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix  
 	Rect boundingBox;
 	namedWindow("SW", CV_WINDOW_AUTOSIZE);
 
@@ -377,7 +377,7 @@ int main()
 			  // classify.. cout the result. reset bins
 			if (ROIEvents >= EVENTS_PER_CLASSIFICATION)
 			{
-				rectangle(disp_countMat2, boundingBox, Scalar(0, 0, 0), 1, 8, 0);
+				rectangle(disp_countMat, boundingBox, Scalar(0, 0, 0), 1, 8, 0);
 				for (int i = 0; i < 25; i++) { // perform classification for all 25 candidates
 					//histogram normalization
 					double histTotal = 0;
@@ -489,12 +489,12 @@ int main()
 
 				// Display Sliding Window
 
-				disp_countMat1 = Mat(cROW, cCOL, CV_8UC1, &countMat);
-				disp_countMat2 = rescale(disp_countMat1, 0, 255);
+				disp_countMat = Mat(cROW, cCOL, CV_8UC1, countMat);
+				rescale(disp_countMat, 0, 255);
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
-				rectangle(disp_countMat2, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
+				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				//cvSet("SW", CV_RGB(0, 0, 0));
-				imshow("SW", disp_countMat2);
+				imshow("SW", disp_countMat);
 				waitKey(0);
 				
 				
@@ -599,7 +599,7 @@ void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL],
 	//return desc;
 }
 
-Mat rescale(Mat countMat, int a, int b)
+void rescale(Mat &countMat, int a, int b)
 {
 	double min, max;
 	cv::minMaxIdx(countMat, &min, &max);
@@ -612,8 +612,6 @@ Mat rescale(Mat countMat, int a, int b)
 			countMat.at<uchar>(i, j) = ((b - a)*(countMat.at<uchar>(i, j) - min) / (max - min) + a);
 		}
 	}
-
-	return countMat;
 
 }
 
