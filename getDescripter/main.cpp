@@ -49,7 +49,7 @@ using namespace cv;
 #define ROIboxSizeY 31
 #define BOOTSTRAP 1000
 #define PADDING 2
-#define QueueSize 2000
+#define QueueSize 500
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -58,6 +58,7 @@ void rescale(Mat &countMat, int a, int b);
 int main()
 {
 	double countMat[cROW][cCOL];
+	//Mat countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix 
 	static int gcount = 0; // global event count
 	static int countEvents = 0;
 	static int descriptor_count = 0;
@@ -96,7 +97,7 @@ int main()
 	else {
 		int x, y;
 		double ts, read_x, read_y, read_p;
-		while ((infile >> ts) && (ts < 0.3) && (!infile.eof())) {
+		while ((infile >> ts) && (!infile.eof())) {
 			infile >> read_x;
 			x = (int)read_x;
 			infile >> read_y;
@@ -324,10 +325,15 @@ int main()
 	int ROIEvents = 0;
 	double globalBestScore = 0;
 	int bestCandidate;
-	vector<int> det_init;
 	Mat disp_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix  
 	Rect boundingBox;
-	namedWindow("SW", CV_WINDOW_AUTOSIZE);
+	namedWindow("SW", CV_WINDOW_NORMAL);
+
+	for (int i = 0; i < cROW; i++) {
+		for (int j = 0; j < cCOL; j++) {
+			countMat[i][j] = 0;
+		}
+	}
 
 	ifstream trackfile(tracking_TD);
 	if (!trackfile) {
@@ -488,15 +494,14 @@ int main()
 
 
 				// Display Sliding Window
-
-				disp_countMat = Mat(cROW, cCOL, CV_8UC1, countMat);
-				rescale(disp_countMat, 0, 255);
+				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
+				disp_countMat = Mat(cROW, cCOL, CV_32FC1, &countMat);
+				resize(disp_countMat, disp_countMat, Size(disp_countMat.cols / 2, disp_countMat.rows / 2));
+				//rescale(disp_countMat, 0, 255);
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
 				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
-				//cvSet("SW", CV_RGB(0, 0, 0));
 				imshow("SW", disp_countMat);
-				waitKey(0);
-				
+				waitKey(25);
 				
 
 
@@ -609,7 +614,8 @@ void rescale(Mat &countMat, int a, int b)
 	{
 		for (int j = 0; j < countMat.cols; j++)
 		{
-			countMat.at<uchar>(i, j) = ((b - a)*(countMat.at<uchar>(i, j) - min) / (max - min) + a);
+			countMat.at<float>(i, j) = ((b - a)*(countMat.at<float>(i, j) - min) / (max - min) + a);
+			//countMat.at<uchar>(i, j) = ((b - a)*(countMat.at<uchar>(i, j) - min) / (max - min) + a);
 		}
 	}
 
