@@ -317,7 +317,7 @@ int main()
 
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../trackingTD.txt";
-	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 2 / 3;
+	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.1;
 	eventQueue.clear();
 	int x, y;
 	double ts, read_x, read_y, read_p;
@@ -495,13 +495,18 @@ int main()
 
 				// Display Sliding Window
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
-				disp_countMat = Mat(cROW, cCOL, CV_32FC1, &countMat);
-				resize(disp_countMat, disp_countMat, Size(disp_countMat.cols / 2, disp_countMat.rows / 2));
-				//rescale(disp_countMat, 0, 255);
+				for (int i = 0; i < cROW; i++) {
+					for (int j = 0; j < cCOL; j++) {
+						disp_countMat.at<uchar>(i, j) = countMat[i][j];
+					}
+				}
+				//disp_countMat = Mat(cROW, cCOL, CV_32FC1, &countMat);
+				//resize(disp_countMat, disp_countMat, Size(disp_countMat.cols / 2, disp_countMat.rows / 2));
+				rescale(disp_countMat, 0, 255);
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
 				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				imshow("SW", disp_countMat);
-				waitKey(25);
+				waitKey(1);
 				
 
 
@@ -614,8 +619,8 @@ void rescale(Mat &countMat, int a, int b)
 	{
 		for (int j = 0; j < countMat.cols; j++)
 		{
-			countMat.at<float>(i, j) = ((b - a)*(countMat.at<float>(i, j) - min) / (max - min) + a);
-			//countMat.at<uchar>(i, j) = ((b - a)*(countMat.at<uchar>(i, j) - min) / (max - min) + a);
+			//countMat.at<float>(i, j) = ((b - a)*(countMat.at<float>(i, j) - min) / (max - min) + a);
+			countMat.at<uchar>(i, j) = ((b - a)*(countMat.at<uchar>(i, j) - min) / (max - min) + a);
 		}
 	}
 
