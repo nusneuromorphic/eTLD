@@ -247,7 +247,7 @@ int main()
 		labels[i] = 1;
 	}
 	for (int i = BOOTSTRAP; i < BOOTSTRAP * 2; i++) {
-		labels[i] = -1;
+		labels[i] = 2;
 	}
 
 	double lambda = 0.00005;	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
@@ -319,7 +319,7 @@ int main()
 
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../trackingTD.txt";
-	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.05;
+	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.15;
 	eventQueue.clear();
 	int x, y;
 	double ts, read_x, read_y, read_p;
