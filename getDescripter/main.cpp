@@ -40,16 +40,18 @@ using namespace cv;
 //#define cROW 180 // DAVIS
 //#define cCOL 240 // DAVIS
 #define tEND 15
-#define LookUpCenter 10
+//#define LookUpCenter 10
 #define EC_NR 10
 #define EC_NW 12
-#define ROItopLeftX 114
+#define EC_RMIN 3
+#define EC_RMAX 30
+#define ROItopLeftX 119
 #define ROItopLeftY 38
-#define ROIboxSizeX 45
-#define ROIboxSizeY 31
+#define ROIboxSizeX 34
+#define ROIboxSizeY 28
 #define BOOTSTRAP 1000
 #define PADDING 2
-#define QueueSize 500
+#define QueueSize 5000
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -79,15 +81,15 @@ int main()
 	}
 
 
-	ECparam ec(EC_NR, EC_NW, 2, 10, 100, 1000);
+	ECparam ec(EC_NR, EC_NW, EC_RMIN, EC_RMAX, 200, 1000);
 	string initial_TD = "../initialTD.txt";
 	vector <double> allDescs;
 	vector <vector<double>> ROIDescs;
 	vector <vector<double>> nonROIDescs;
 	deque<int> eventQueue;
 
-	Matrix t_wedge(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
-	Matrix t_ring(LookUpCenter * 2 + 1, LookUpCenter * 2 + 1);
+	Matrix t_wedge(EC_RMAX * 2 + 1, EC_RMAX * 2 + 1);
+	Matrix t_ring(EC_RMAX * 2 + 1, EC_RMAX * 2 + 1);
 	ec.wedgeRing_lookupTable(t_ring, t_wedge);
 
 	ifstream infile(initial_TD);
@@ -108,7 +110,7 @@ int main()
 			eventQueue.push_back(y);
 			countMat[y][x] += 1;
 
-			if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents))  {
+			if (countEvents > ec.minNumEvents)  {
 				vector<double> desc;
 				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 				allDescs.insert(allDescs.end(), desc.begin(), desc.end());
@@ -317,17 +319,18 @@ int main()
 
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../trackingTD.txt";
-	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.1;
+	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.05;
 	eventQueue.clear();
 	int x, y;
 	double ts, read_x, read_y, read_p;
 	countEvents = 0;
 	int ROIEvents = 0;
-	double globalBestScore = 0;
-	int bestCandidate;
+	double globalBestScore = 0, globalAverageScore = 0, localAverageScore = 0;
+	double allScores[25];
+	int bestCandidate = 0, classificationCount = 0;
 	Mat disp_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix  
 	Rect boundingBox;
-	namedWindow("SW", CV_WINDOW_NORMAL);
+	namedWindow("SW", CV_WINDOW_AUTOSIZE);
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -352,7 +355,7 @@ int main()
 			countMat[y][x] += 1;
 
 			if ((x >= padBB_topLeftX) && (x < padBB_topLeftX + padBB_boxSizeX) && (y >= padBB_topLeftY) && (y < padBB_topLeftY + padBB_boxSizeY)) {
-				if ((countEvents > ec.minNumEvents) && (countEvents <= ec.maxNumEvents)) {
+				if (countEvents > ec.minNumEvents) {
 					vector<double> desc;
 					getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 
@@ -421,51 +424,15 @@ int main()
 					//score[j] = accumulate(temp, temp + VOCABSIZE * 3, 0) + SVMb._matrix[0][j];
 					score = temp_sum + bias;
 					temp_sum = 0;
-					
-					/*objcnt[class_events]++;
-					probcnt[class_events] = objcnt[class_events] / rcgCnt;
-					std::cout << objList[class_events] << "(" << objcnt[class_events] << "/" << rcgCnt << ")\t";
-					for (int jj = 0; jj < CalNUM; jj++)
-						std::cout << probcnt[jj] << "\t";
-					std::cout << "\r";
-					if (rcgCnt > reset_num)
-					{
-						rcgCnt = 0;
-						for (int i = 0; i < CalNUM; i++)
-						{
-							objcnt[i] = 0;
-							probcnt[i] = 0;
-						}
-						std::cout << std::endl << std::endl << std::endl
-							<< "/////////Resetting the classification histogram/////////" << std::endl
-							<< "/////////Resetting the classification histogram/////////" << std::endl
-							<< std::endl << std::endl << std::endl;
-						std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
+					allScores[i] = score;
 
+					if (score == globalBestScore) {
+						if ((abs((bestCandidate % 5) - 2) + abs((bestCandidate / 5) - 2)) > (abs((i % 5) - 2) + abs((i / 5) - 2))) // if current candidate is closer to center
+							//cout << "Special Case" << endl;
+							globalBestScore = score;
+							bestCandidate = i;
 					}
-					else
-					{
-						if ((probcnt[class_events] > prob_threshold) && (rcgCnt > refresh_hist))
-						{
-							std::cout << std::endl << std::endl
-								<< "**********Move to the next @.@************ " << std::endl
-								<< "**********Move to the next @.@************ " << std::endl
-								<< "**********Move to the next @.@************ " << std::endl
-								<< "**********Move to the next @.@************ " << std::endl
-								<< "**********Move to the next @.@************ " << std::endl
-								<< "**********Move to the next @.@************ " << std::endl
-								<< std::endl << std::endl;
-							std::cout << "Class \t 0   1   2   3   4   5   6   7   8   9\n";
-							rcgCnt = 0;
-							for (int i = 0; i < CalNUM; i++)
-							{
-								objcnt[i] = 0;
-								probcnt[i] = 0;
-							}
-
-						}
-					}*/
-
+	
 					if (score > globalBestScore) {
 						globalBestScore = score;
 						bestCandidate = i;
@@ -474,7 +441,36 @@ int main()
 					for (int j = 0; j < VOCABSIZE; j++)
 						SWcandidate_hist[i][j] = 0;
 					ROIEvents = 0;// this can make sure doing classification one time within EVENTS_PER_CLASSIFICATION.
+				} // end for
+
+				// Checking if scores are all similar
+				/*double tempTotal = 0;
+				for (int i = 0; i < 25; i++) {
+					tempTotal = tempTotal + allScores[i];
 				}
+				localAverageScore = tempTotal / 25;
+
+				bool allSame = true;
+				for (int i = 0; i < 25; i++) {
+					if (allScores[i] > (localAverageScore * 0.3)) {
+						allSame = false;
+					}
+				}
+
+				if (allSame == true)
+					bestCandidate = 12; // No change in bounding box
+					*/
+
+				/*if (globalBestScore < (0.6 * globalAverageScore)) {
+					bestCandidate = 12; // No change in bounding box
+				}
+				
+				globalAverageScore = ((globalAverageScore * (classificationCount)) + globalBestScore) / (classificationCount + 1);
+				*/
+				
+
+
+				// Moving the bounding box
 
 				origBB_topLeftX = origBB_topLeftX + (bestCandidate % 5) - 2;
 				origBB_topLeftY = origBB_topLeftY + (bestCandidate / 5) - 2;
@@ -489,9 +485,10 @@ int main()
 				padBB_topLeftX = origBB_topLeftX - 2;
 				padBB_topLeftY = origBB_topLeftY - 2;
 				globalBestScore = 0;
+				localAverageScore = 0;
 
 				cout << "Best candidate: " << bestCandidate << "\n";
-
+				classificationCount++;
 
 				// Display Sliding Window
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
@@ -551,9 +548,9 @@ void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL],
 	int dy = cur_loc_y - LookUpCenter;
 	int dx = cur_loc_x - LookUpCenter;
 
-	int jmin = (cur_loc_y - ec.rmax >= 0) ? (cur_loc_y - ec.rmax) : 0;
+	int jmin = (cur_loc_y - dy - ec.rmax >= 0) ? (cur_loc_y - ec.rmax) : dy;
 	int jmax = (cur_loc_y + ec.rmax < cROW) ? (cur_loc_y + ec.rmax) : cROW;
-	int imin = (cur_loc_x - ec.rmax >= 0) ? (cur_loc_x - ec.rmax) : 0;
+	int imin = (cur_loc_x - dx - ec.rmax >= 0) ? (cur_loc_x - ec.rmax) : dx;
 	int imax = (cur_loc_x + ec.rmax < cCOL) ? (cur_loc_x + ec.rmax) : cCOL;
 	for (int j = jmin; j < jmax; j++)
 	{

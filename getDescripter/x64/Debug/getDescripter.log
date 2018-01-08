@@ -1,16 +1,16 @@
 ﻿  main.cpp
-d:\fyp\trackingcpp\getdescripter\main.cpp(139): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(170): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(178): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(223): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(320): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(361): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(500): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(414): warning C4101: 'class_events': unreferenced local variable
-d:\fyp\trackingcpp\getdescripter\main.cpp(566): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(568): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(586): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-d:\fyp\trackingcpp\getdescripter\main.cpp(623): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(141): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(172): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(180): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(225): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(322): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(364): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(497): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(417): warning C4101: 'class_events': unreferenced local variable
+d:\fyp\trackingcpp\getdescripter\main.cpp(563): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(565): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(583): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+d:\fyp\trackingcpp\getdescripter\main.cpp(620): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
   getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.exe
   getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Debug\getDescripter.pdb (Partial PDB)
           1 file(s) copied.
