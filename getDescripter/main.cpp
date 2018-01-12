@@ -45,10 +45,10 @@ using namespace cv;
 #define EC_NW 12
 #define EC_RMIN 3
 #define EC_RMAX 30
-#define ROItopLeftX 119
-#define ROItopLeftY 38
-#define ROIboxSizeX 34
-#define ROIboxSizeY 28
+#define ROItopLeftX 145
+#define ROItopLeftY 15
+#define ROIboxSizeX 92
+#define ROIboxSizeY 69
 #define BOOTSTRAP 1000
 #define PADDING 2
 #define QueueSize 5000
@@ -82,7 +82,7 @@ int main()
 
 
 	ECparam ec(EC_NR, EC_NW, EC_RMIN, EC_RMAX, 200, 1000);
-	string initial_TD = "../initialTD.txt";
+	string initial_TD = "../thumper_init.txt";
 	vector <double> allDescs;
 	vector <vector<double>> ROIDescs;
 	vector <vector<double>> nonROIDescs;
@@ -318,7 +318,7 @@ int main()
 
 
 	cout << "Performing tracking.\n";
-	string tracking_TD = "../trackingTD.txt";
+	string tracking_TD = "../thumper_later.txt";
 	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.15;
 	eventQueue.clear();
 	int x, y;
@@ -545,12 +545,12 @@ void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL],
 	}*/
 
 	//get ring and wedge num from lookup table*********************
-	int dy = cur_loc_y - LookUpCenter;
-	int dx = cur_loc_x - LookUpCenter;
+	int dy = cur_loc_y - EC_RMAX;
+	int dx = cur_loc_x - EC_RMAX;
 
-	int jmin = (cur_loc_y - dy - ec.rmax >= 0) ? (cur_loc_y - ec.rmax) : dy;
+	int jmin = (cur_loc_y - ec.rmax >= 0) ? (cur_loc_y - ec.rmax) : 0;
 	int jmax = (cur_loc_y + ec.rmax < cROW) ? (cur_loc_y + ec.rmax) : cROW;
-	int imin = (cur_loc_x - dx - ec.rmax >= 0) ? (cur_loc_x - ec.rmax) : dx;
+	int imin = (cur_loc_x - ec.rmax >= 0) ? (cur_loc_x - ec.rmax) : 0;
 	int imax = (cur_loc_x + ec.rmax < cCOL) ? (cur_loc_x + ec.rmax) : cCOL;
 	for (int j = jmin; j < jmax; j++)
 	{
