@@ -11,7 +11,7 @@
 using namespace std;
 
 #define M_PI 3.14159265358979323846
-#define LookUpCenter 10
+#define LookUpCenter 20
 class ECparam
 {
 public:

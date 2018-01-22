@@ -34,24 +34,24 @@ extern "C" {
 using namespace std;
 using namespace cv;
 
-#define VOCABSIZE 200
+#define VOCABSIZE 100
 #define cROW 240 //ATIS
 #define cCOL 304 //ATIS
 //#define cROW 180 // DAVIS
 //#define cCOL 240 // DAVIS
 #define tEND 15
-//#define LookUpCenter 10
-#define EC_NR 10
+#define LookUpCenter 20
+#define EC_NR 7
 #define EC_NW 12
-#define EC_RMIN 3
-#define EC_RMAX 30
-#define ROItopLeftX 145
-#define ROItopLeftY 15
-#define ROIboxSizeX 92
-#define ROIboxSizeY 69
-#define BOOTSTRAP 1000
+#define EC_RMIN 2
+#define EC_RMAX 20
+#define ROItopLeftX 153
+#define ROItopLeftY 53
+#define ROIboxSizeX 83
+#define ROIboxSizeY 65
+#define BOOTSTRAP 4000
 #define PADDING 2
-#define QueueSize 5000
+#define QueueSize 3000
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -319,7 +319,7 @@ int main()
 
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../thumper_later.txt";
-	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.15;
+	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.25;
 	eventQueue.clear();
 	int x, y;
 	double ts, read_x, read_y, read_p;
@@ -492,7 +492,7 @@ int main()
 
 				// Display Sliding Window
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
-				for (int i = 0; i < cROW; i++) {
+				/*for (int i = 0; i < cROW; i++) {
 					for (int j = 0; j < cCOL; j++) {
 						disp_countMat.at<uchar>(i, j) = countMat[i][j];
 					}
@@ -503,7 +503,7 @@ int main()
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
 				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				imshow("SW", disp_countMat);
-				waitKey(1);
+				waitKey(1);*/
 				
 
 
