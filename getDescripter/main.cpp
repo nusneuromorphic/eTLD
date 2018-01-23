@@ -492,7 +492,7 @@ int main()
 
 				// Display Sliding Window
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
-				/*for (int i = 0; i < cROW; i++) {
+				for (int i = 0; i < cROW; i++) {
 					for (int j = 0; j < cCOL; j++) {
 						disp_countMat.at<uchar>(i, j) = countMat[i][j];
 					}
@@ -503,7 +503,7 @@ int main()
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
 				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				imshow("SW", disp_countMat);
-				waitKey(1);*/
+				waitKey(1);
 				
 
 

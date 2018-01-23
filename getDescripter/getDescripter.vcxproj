@@ -109,8 +109,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>D:\FYP\OpenCV\build\x64\vc14\lib;D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64;C:\FYP\vlfeat-0.9.20\bin\win64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world340d.lib;vl.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\FYP\opencv\build\x64\vc14\lib;D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64;C:\FYP\vlfeat-0.9.20\bin\win64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core2413d.lib;opencv_highgui2413d.lib;opencv_imgproc2413d.lib;vl.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)</Command>
@@ -147,12 +147,11 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>D:\FYP\OpenCV\build\x64\vc14\lib;D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64;C:\FYP\vlfeat-0.9.20\bin\win64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world340d.lib;vl.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\FYP\opencv\build\x64\vc14\lib;D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64;C:\FYP\vlfeat-0.9.20\bin\win64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core2413.lib;opencv_highgui2413.lib;opencv_imgproc2413.lib;vl.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)
-copy C:\FYP\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)</Command>
+      <Command>copy D:\FYP\vlfeat-0.9.20-bin\vlfeat-0.9.20\bin\win64\vl.dll $(SolutionDir)$(ConfigurationName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
