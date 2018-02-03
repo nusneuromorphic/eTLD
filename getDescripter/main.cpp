@@ -228,7 +228,7 @@ int main()
 
 
 	// homkermap
-	VlHomogeneousKernelMap* hom;
+	/*VlHomogeneousKernelMap* hom;
 	//double * psi = new double[3];
 	double psi[3];
 	double * all_psi = new double[totalSize * 3];
@@ -240,7 +240,7 @@ int main()
 		all_psi[3 * j] = psi[0];
 		all_psi[3 * j + 1] = psi[1];
 		all_psi[3 * j + 2] = psi[2];
-	}
+	}*/
 
 	double labels[BOOTSTRAP * 2];
 	for (int i = 0; i < BOOTSTRAP; i++) {
@@ -252,7 +252,7 @@ int main()
 
 	double lambda = 0.00005;	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
 
-	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, all_psi, VOCABSIZE * 3, 2000, labels, lambda);
+	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, SVMdata, VOCABSIZE * 3, 2000, labels, lambda);
 	// 9.3266e-06, C = 10, length(train_label) = 2000.
 	vl_svm_train(svm);
 
@@ -387,6 +387,7 @@ int main()
 			if (ROIEvents >= EVENTS_PER_CLASSIFICATION)
 			{
 				rectangle(disp_countMat, boundingBox, Scalar(0, 0, 0), 1, 8, 0);
+				double temp[VOCABSIZE];
 				for (int i = 0; i < 25; i++) { // perform classification for all 25 candidates
 					//histogram normalization
 					double histTotal = 0;
@@ -395,10 +396,11 @@ int main()
 					}
 					for (int j = 0; j < VOCABSIZE; j++) {
 						SWcandidate_hist[i][j] = SWcandidate_hist[i][j] / histTotal;
+						temp[j] = SWcandidate_hist[i][j];
 					}
 
 					// homkermap
-					VlHomogeneousKernelMap* hom;
+					/*VlHomogeneousKernelMap* hom;
 					double psi[3], all_psi[VOCABSIZE * 3];
 					hom = vl_homogeneouskernelmap_new(VlHomogeneousKernelChi2, 0.5, 1, -5, VlHomogeneousKernelMapWindowRectangular);
 					//vl_homogeneouskernelmap_new(kernelType, gamma, order, period, windowType);
@@ -408,7 +410,7 @@ int main()
 						all_psi[3 * j] = psi[0];
 						all_psi[3 * j + 1] = psi[1];
 						all_psi[3 * j + 2] = psi[2];
-					}
+					}*/
 
 					// do the classification
 					double score = 0;
@@ -416,10 +418,10 @@ int main()
 					double temp_sum = 0;
 					int class_events;
 
-					for (int j = 0; j < VOCABSIZE * 3; j++)
+					for (int j = 0; j < VOCABSIZE; j++)
 					{
 						//temp[i] = SVMwt._matrix[j][i] * all_psi[i];
-						temp_sum = temp_sum + model[j] * all_psi[j];
+						temp_sum = temp_sum + model[j] * temp[j];
 					}
 					//score[j] = accumulate(temp, temp + VOCABSIZE * 3, 0) + SVMb._matrix[0][j];
 					score = temp_sum + bias;
@@ -517,8 +519,8 @@ int main()
 	waitKey(0);
 	destroyWindow("SW");
 	vl_svm_delete(svm);
-	delete[] all_psi;
-	all_psi = NULL;
+	//delete[] all_psi;
+	//all_psi = NULL;
 	system("pause");
 	return 0;
 	
