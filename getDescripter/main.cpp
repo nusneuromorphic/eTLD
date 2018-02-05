@@ -34,11 +34,11 @@ extern "C" {
 using namespace std;
 using namespace cv;
 
-#define VOCABSIZE 100
-#define cROW 240 //ATIS
-#define cCOL 304 //ATIS
-//#define cROW 180 // DAVIS
-//#define cCOL 240 // DAVIS
+#define VOCABSIZE 500
+//#define cROW 240 //ATIS
+//#define cCOL 304 //ATIS
+#define cROW 180 // DAVIS
+#define cCOL 240 // DAVIS
 #define tEND 15
 #define LookUpCenter 20
 #define EC_NR 7
@@ -49,9 +49,9 @@ using namespace cv;
 #define ROItopLeftY 53
 #define ROIboxSizeX 83
 #define ROIboxSizeY 65
-#define BOOTSTRAP 4000
+#define BOOTSTRAP 12000
 #define PADDING 2
-#define QueueSize 3000
+#define QueueSize 5000
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -252,7 +252,7 @@ int main()
 
 	double lambda = 0.00005;	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
 
-	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, SVMdata, VOCABSIZE * 3, 2000, labels, lambda);
+	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, SVMdata, VOCABSIZE, BOOTSTRAP * 2, labels, lambda);
 	// 9.3266e-06, C = 10, length(train_label) = 2000.
 	vl_svm_train(svm);
 
@@ -319,7 +319,7 @@ int main()
 
 	cout << "Performing tracking.\n";
 	string tracking_TD = "../thumper_later.txt";
-	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.25;
+	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.40;
 	eventQueue.clear();
 	int x, y;
 	double ts, read_x, read_y, read_p;

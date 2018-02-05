@@ -1,0 +1,20 @@
+﻿  main.cpp
+main.cpp(141): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+main.cpp(172): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+main.cpp(180): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+main.cpp(225): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+main.cpp(322): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(364): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+main.cpp(499): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+main.cpp(419): warning C4101: 'class_events': unreferenced local variable
+main.cpp(565): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(567): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(585): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(622): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+  Generating code
+  10 of 742 functions ( 1.3%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Release\getDescripter.exe
+          1 file(s) copied.
