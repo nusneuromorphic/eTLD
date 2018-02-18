@@ -52,6 +52,7 @@ using namespace cv;
 #define BOOTSTRAP 12000
 #define PADDING 2
 #define QueueSize 5000
+#define DetQueueSize 2000
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -60,6 +61,7 @@ void rescale(Mat &countMat, int a, int b);
 int main()
 {
 	double countMat[cROW][cCOL];
+	double detMat[cROW][cCOL];
 	//Mat countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix 
 	static int gcount = 0; // global event count
 	static int countEvents = 0;
@@ -108,7 +110,7 @@ int main()
 			countEvents++;
 			eventQueue.push_back(x);
 			eventQueue.push_back(y);
-			countMat[y][x] += 1;
+			countMat[y][x] += 1.0;
 
 			if (countEvents > ec.minNumEvents)  {
 				vector<double> desc;
@@ -130,7 +132,7 @@ int main()
 				eventQueue.pop_front();
 				y = eventQueue.front();
 				eventQueue.pop_front();
-				countMat[y][x] -= 1;
+				countMat[y][x] -= 1.0;
 				countEvents--;
 
 			} // end if
@@ -162,6 +164,12 @@ int main()
 	vl_kdforest_build(forest, VOCABSIZE, vocab2);
 	vl_kdforest_set_max_num_comparisons(forest, 15);
 
+	// initialise detection list
+	int detection_list[VOCABSIZE];
+	for (int i = 0; i < VOCABSIZE; i++) {
+		detection_list[i] = 0;
+	}
+
 	// build ROI histogram and nonROI histogram
 	VlKDForestNeighbor neighbors[1]; // a structure
 	VlKDForestSearcher* searcherObj = vl_kdforest_new_searcher(forest);
@@ -171,6 +179,7 @@ int main()
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		ROIhist[binsa_new]++;
+		detection_list[binsa_new]++; // positive value means ROI cluster
 		//cout << "ROI: " << binsa_new << "+1.\n";
 	}
 
@@ -179,6 +188,7 @@ int main()
 		//vl_kdforest_query(forest, neighbors, 1, pass_desc);
 		int binsa_new = neighbors->index;
 		nonROIhist[binsa_new]++;
+		detection_list[binsa_new]--; // negative value means non-ROI cluster
 		//cout << "nonROI: " << binsa_new << "+1.\n";
 	}
 	
@@ -250,10 +260,11 @@ int main()
 		labels[i] = 2;
 	}
 
-	double lambda = 0.00005;	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
+	double lambda = 1.0 / (10 * BOOTSTRAP * 2);	// lambda = 1 / (svmOpts.C * length(train_label)) ; -> From the matlab code
+	// 0.0000125
 
 	VlSvm * svm = vl_svm_new(VlSvmSolverSgd, SVMdata, VOCABSIZE, BOOTSTRAP * 2, labels, lambda);
-	// 9.3266e-06, C = 10, length(train_label) = 2000.
+	// 9.3266e-06, C = 10, length(train_label) = 4000.
 	vl_svm_train(svm);
 
 	const double * model = vl_svm_get_model(svm);
@@ -321,6 +332,7 @@ int main()
 	string tracking_TD = "../thumper_later.txt";
 	const int EVENTS_PER_CLASSIFICATION = ROIboxSizeX * ROIboxSizeY * 0.40;
 	eventQueue.clear();
+	deque<int> detQueue;
 	int x, y;
 	double ts, read_x, read_y, read_p;
 	countEvents = 0;
@@ -352,23 +364,28 @@ int main()
 			countEvents++;
 			eventQueue.push_back(x);
 			eventQueue.push_back(y);
-			countMat[y][x] += 1;
+			countMat[y][x] += 1.0;
 
-			if ((x >= padBB_topLeftX) && (x < padBB_topLeftX + padBB_boxSizeX) && (y >= padBB_topLeftY) && (y < padBB_topLeftY + padBB_boxSizeY)) {
-				if (countEvents > ec.minNumEvents) {
-					vector<double> desc;
-					getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
+			if (countEvents > ec.minNumEvents) {
+				vector<double> desc;
+				getDesctriptors_CountMat(desc, countMat, ec, y, x, t_ring, t_wedge);
 
-					vl_kdforestsearcher_query(searcherObj, neighbors, 1, &desc.front());
-					//vl_kdforest_query(forest, neighbors, 1, pass_desc);
-					int binsa_new = neighbors->index;
+				vl_kdforestsearcher_query(searcherObj, neighbors, 1, &desc.front());
+				//vl_kdforest_query(forest, neighbors, 1, pass_desc);
+				int binsa_new = neighbors->index;
+				if (detection_list[binsa_new] > 0) { // if descriptor belongs to ROI cluster
+					detQueue.push_back(x);
+					detQueue.push_back(y);
+					detMat[y][x] += 1.0; // update detection matrix
+				}
+
+				if ((x >= padBB_topLeftX) && (x < padBB_topLeftX + padBB_boxSizeX) && (y >= padBB_topLeftY) && (y < padBB_topLeftY + padBB_boxSizeY)) {
 					for (int i = 0; i < 25; i++) {
 						if (BBLookupTable[y - padBB_topLeftY][x - padBB_topLeftX][i] == true) {
 							SWcandidate_hist[i][binsa_new]++; // increment the histogram of the corresponding SW candidate
 						}
 					}
 					ROIEvents++;
-
 				}
 			}
 
@@ -378,8 +395,18 @@ int main()
 				eventQueue.pop_front();
 				y = eventQueue.front();
 				eventQueue.pop_front();
-				countMat[y][x] -= 1;
+				countMat[y][x] -= 1.0;
 				countEvents--;
+
+			} // end if
+
+			if (detQueue.size() > (DetQueueSize * 2)) // Pop out the oldest event in the detection queue.
+			{
+				x = detQueue.front();
+				detQueue.pop_front();
+				y = detQueue.front();
+				detQueue.pop_front();
+				detMat[y][x] -= 1.0;
 
 			} // end if
 
@@ -454,7 +481,7 @@ int main()
 
 				bool allSame = true;
 				for (int i = 0; i < 25; i++) {
-					if (allScores[i] > (localAverageScore * 0.3)) {
+					if (allScores[i] > (localAverageScore * 0.6)) {
 						allSame = false;
 					}
 				}
@@ -496,7 +523,8 @@ int main()
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
 				for (int i = 0; i < cROW; i++) {
 					for (int j = 0; j < cCOL; j++) {
-						disp_countMat.at<uchar>(i, j) = countMat[i][j];
+						//disp_countMat.at<uchar>(i, j) = countMat[i][j];
+						disp_countMat.at<uchar>(i, j) = detMat[i][j];
 					}
 				}
 				//disp_countMat = Mat(cROW, cCOL, CV_32FC1, &countMat);
