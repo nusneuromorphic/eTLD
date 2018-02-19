@@ -340,9 +340,11 @@ int main()
 	double globalBestScore = 0, globalAverageScore = 0, localAverageScore = 0;
 	double allScores[25];
 	int bestCandidate = 0, classificationCount = 0;
-	Mat disp_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix  
+	Mat disp_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix
+	Mat disp_detMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix 
 	Rect boundingBox;
 	namedWindow("SW", CV_WINDOW_AUTOSIZE);
+	namedWindow("Det", CV_WINDOW_AUTOSIZE);
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -523,8 +525,8 @@ int main()
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
 				for (int i = 0; i < cROW; i++) {
 					for (int j = 0; j < cCOL; j++) {
-						//disp_countMat.at<uchar>(i, j) = countMat[i][j];
-						disp_countMat.at<uchar>(i, j) = detMat[i][j];
+						disp_countMat.at<uchar>(i, j) = countMat[i][j];
+						disp_detMat.at<uchar>(i, j) = detMat[i][j];
 					}
 				}
 				//disp_countMat = Mat(cROW, cCOL, CV_32FC1, &countMat);
@@ -533,6 +535,11 @@ int main()
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
 				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
 				imshow("SW", disp_countMat);
+
+				rescale(disp_detMat, 0, 255);
+				//rectangle(disp_detMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
+				imshow("Det", disp_detMat);
+
 				waitKey(1);
 				
 

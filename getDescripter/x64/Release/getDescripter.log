@@ -4,17 +4,18 @@ main.cpp(180): warning C4244: 'initializing': conversion from 'vl_uindex' to 'in
 main.cpp(189): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
 main.cpp(235): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
 main.cpp(333): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-main.cpp(375): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
-main.cpp(527): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
-main.cpp(446): warning C4101: 'class_events': unreferenced local variable
-main.cpp(593): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-main.cpp(595): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-main.cpp(613): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-main.cpp(650): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+main.cpp(377): warning C4244: 'initializing': conversion from 'vl_uindex' to 'int', possible loss of data
+main.cpp(528): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+main.cpp(529): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
+main.cpp(448): warning C4101: 'class_events': unreferenced local variable
+main.cpp(600): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(602): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(620): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+main.cpp(657): warning C4244: '=': conversion from 'double' to 'uchar', possible loss of data
   Generating code
-  32 of 742 functions ( 4.3%) were compiled, the rest were copied from previous compilation.
+  8 of 742 functions ( 1.1%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    13 functions had inline decision re-evaluated but remain unchanged
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   getDescripter.vcxproj -> D:\FYP\TrackingCPP\x64\Release\getDescripter.exe
           1 file(s) copied.
