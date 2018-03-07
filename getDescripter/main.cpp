@@ -502,16 +502,16 @@ int main()
 					bestCandidate = 12; // No change in bounding box
 				}*/
 
-				if (globalBestScore < 0.8 * globalAverageScore) { // perform detection
+				if (globalBestScore < 0.97 * globalAverageScore) { // perform detection
 
 					double totalDetEvents = 0, highestDetEvents = 0;
 					int detX = -1, detY = -1;
 
-					for (int i = 0; i < cROW - ROIboxSizeX; i++) {
-						for (int j = 0; j < cCOL - ROIboxSizeY; j++) {
-							for (int k = i; k < ROIboxSizeX; k++) {
-								for (int l = j; l < ROIboxSizeY; l++) {
-									totalDetEvents += detMat[k][l];
+					for (int i = 0; i < cCOL - ROIboxSizeX; i++) {
+						for (int j = 0; j < cROW - ROIboxSizeY; j++) {
+							for (int k = i; k < i + ROIboxSizeX - 1; k++) {
+								for (int l = j; l < j + ROIboxSizeY - 1; l++) {
+									totalDetEvents += detMat[l][k];
 								}
 							}
 							if (highestDetEvents < totalDetEvents) {
