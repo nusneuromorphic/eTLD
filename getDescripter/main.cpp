@@ -52,7 +52,7 @@ using namespace cv;
 #define BOOTSTRAP 12000
 #define PADDING 2
 #define QueueSize 5000
-#define DetQueueSize 2000
+#define DetQueueSize 1000
 
 void getDesctriptors_CountMat(vector<double> &desc, double countMat[cROW][cCOL], ECparam &ec,
 	const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
@@ -343,8 +343,8 @@ int main()
 	Mat disp_countMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix
 	Mat disp_detMat = Mat::zeros(cROW, cCOL, CV_8UC1); //cROWxcCOL zero matrix 
 	Rect boundingBox;
-	namedWindow("SW", CV_WINDOW_AUTOSIZE);
-	namedWindow("Det", CV_WINDOW_AUTOSIZE);
+	namedWindow("TD", CV_WINDOW_AUTOSIZE);
+	namedWindow("Detector", CV_WINDOW_AUTOSIZE);
 
 	for (int i = 0; i < cROW; i++) {
 		for (int j = 0; j < cCOL; j++) {
@@ -412,7 +412,13 @@ int main()
 
 			} // end if
 
-			  // classify.. cout the result. reset bins
+
+			// if confidence level is not high enough
+			//vector<vector<Point> > contours;
+			//findContours(img, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+
+			// classify.. cout the result. reset bins
 			if (ROIEvents >= EVENTS_PER_CLASSIFICATION)
 			{
 				rectangle(disp_countMat, boundingBox, Scalar(0, 0, 0), 1, 8, 0);
@@ -494,32 +500,67 @@ int main()
 
 				/*if (globalBestScore < (0.6 * globalAverageScore)) {
 					bestCandidate = 12; // No change in bounding box
+				}*/
+
+				if (globalBestScore < 0.8 * globalAverageScore) { // perform detection
+
+					double totalDetEvents = 0, highestDetEvents = 0;
+					int detX = -1, detY = -1;
+
+					for (int i = 0; i < cROW - ROIboxSizeX; i++) {
+						for (int j = 0; j < cCOL - ROIboxSizeY; j++) {
+							for (int k = i; k < ROIboxSizeX; k++) {
+								for (int l = j; l < ROIboxSizeY; l++) {
+									totalDetEvents += detMat[k][l];
+								}
+							}
+							if (highestDetEvents < totalDetEvents) {
+								detX = i;
+								detY = j;
+								highestDetEvents = totalDetEvents;
+							}
+							totalDetEvents = 0;
+						}
+					}
+					
+					if (detX == -1 || detY == -1)
+						cout << "Object not detected.\n";
+					else {
+						origBB_topLeftX = detX;
+						origBB_topLeftY = detY;
+						padBB_topLeftX = origBB_topLeftX - 2;
+						padBB_topLeftY = origBB_topLeftY - 2;
+						cout << "Object detected at " << detX << ", " << detY << "\n";
+						globalBestScore = globalAverageScore;
+					}
+					
 				}
-				
-				globalAverageScore = ((globalAverageScore * (classificationCount)) + globalBestScore) / (classificationCount + 1);
-				*/
-				
+
+				else {
+
+					globalAverageScore = ((globalAverageScore * (classificationCount)) + globalBestScore) / (classificationCount + 1.0);
 
 
-				// Moving the bounding box
+					// Moving the bounding box
+					origBB_topLeftX = origBB_topLeftX + (bestCandidate % 5) - 2;
+					origBB_topLeftY = origBB_topLeftY + (bestCandidate / 5) - 2;
+					if (origBB_topLeftX < 0)
+						origBB_topLeftX = 0;
+					if (origBB_topLeftY < 0)
+						origBB_topLeftY = 0;
+					if (origBB_topLeftY > cCOL)
+						origBB_topLeftY = cCOL;
+					if (origBB_topLeftX > cROW)
+						origBB_topLeftX = cROW;
+					padBB_topLeftX = origBB_topLeftX - 2;
+					padBB_topLeftY = origBB_topLeftY - 2;
+					globalBestScore = 0;
+					localAverageScore = 0;
 
-				origBB_topLeftX = origBB_topLeftX + (bestCandidate % 5) - 2;
-				origBB_topLeftY = origBB_topLeftY + (bestCandidate / 5) - 2;
-				if (origBB_topLeftX < 0)
-					origBB_topLeftX = 0;
-				if (origBB_topLeftY < 0)
-					origBB_topLeftY = 0;
-				if (origBB_topLeftY > cCOL)
-					origBB_topLeftY = cCOL;
-				if (origBB_topLeftX > cROW)
-					origBB_topLeftX = cROW;
-				padBB_topLeftX = origBB_topLeftX - 2;
-				padBB_topLeftY = origBB_topLeftY - 2;
-				globalBestScore = 0;
-				localAverageScore = 0;
+					cout << "Best candidate: " << bestCandidate << "\n";
+					classificationCount++;
 
-				cout << "Best candidate: " << bestCandidate << "\n";
-				classificationCount++;
+				}
 
 				// Display Sliding Window
 				//namedWindow("SW", CV_WINDOW_AUTOSIZE);
@@ -534,11 +575,11 @@ int main()
 				rescale(disp_countMat, 0, 255);
 				boundingBox = Rect(origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX, origBB_boxSizeY);
 				rectangle(disp_countMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
-				imshow("SW", disp_countMat);
+				imshow("TD", disp_countMat);
 
 				rescale(disp_detMat, 0, 255);
-				//rectangle(disp_detMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
-				imshow("Det", disp_detMat);
+				rectangle(disp_detMat, boundingBox, Scalar(255, 0, 0), 1, 8, 0);
+				imshow("Detector", disp_detMat);
 
 				waitKey(1);
 				
