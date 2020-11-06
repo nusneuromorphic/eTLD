@@ -3,7 +3,7 @@ Event-based Framework for Dynamic Object Tracking
 
 <p align="center">
   <a href="https://tinyurl.com/ske6nk7">
-    <img src="https://i.ibb.co/H7xyJxW/DETECT-e-TLD-play.png" alt="eTLD Video Demo" width="600"/>
+    <img src="https://i.ibb.co/Y2ySryz/DETECT-e-TLD-play.png" alt="eTLD Video Demo" width="600"/>
   </a>
 </p>
 
