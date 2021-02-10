@@ -14,15 +14,15 @@ int main () {
     int EC_NR {10}, EC_NW {12};
     ETLDDesc eTLDdesc(dims, vocab_size, EC_NR, EC_NW, EC_RMIN, EC_RMAX, numEvents);
 
-    std::string initial_TD = "monitor_initial.txt";
+    std::string initial_TD = "../sample_td/monitor_initial.txt";
 
     // Location of object for training (ROI)
     int ROItopLeftX {44}, ROItopLeftY {15};
     int ROIboxSizeX {55}, ROIboxSizeY {37};
     eTLDdesc.train(initial_TD, ROItopLeftX, ROItopLeftY, ROIboxSizeX, ROIboxSizeY, false);
 
-    std::string test_TD = "monitor_later.txt";
-    eTLDdesc.track(test_TD, false, false);
+    std::string test_TD = "../sample_td/monitor_later.txt";
+    eTLDdesc.track(test_TD, false, true);
 
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Done!\n";
     return 0;
