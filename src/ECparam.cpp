@@ -1,9 +1,8 @@
 #include "ECparam.h"
 
-ECparam::ECparam() : nr(7), nw(12), rmin(2), rmax(10), minNumEvents(100), maxNumEvents(2000)
+ECparam::ECparam() : nr(10), nw(12), rmin(3), rmax(30), minNumEvents(100), maxNumEvents(1000)
 {
-    double arr[7] = { 2, 2.6153, 3.4200, 4.4721, 5.8480, 7.6472, 10 };
-    std::vector<double> r_bin_edges(arr, arr + 7);
+    r_bin_edges = get_r_bin_edges();
 }
 
 ECparam::ECparam(int Nr, int Nw, int Rmin, int Rmax, int MinNumEvents, int MaxNumEvents)
