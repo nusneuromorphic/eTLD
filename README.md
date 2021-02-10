@@ -7,26 +7,53 @@ Event-based Framework for Dynamic Object Tracking
   </a>
 </p>
 
+The final paper is available [here](https://ieeexplore.ieee.org/document/9292994).
+The arXiv preprint is available [here](https://arxiv.org/abs/2009.00855).
+
 # Dependencies
-- Visual Studio 2015 or later
 - OpenCV >= 3.0
-- VLFeat
+- VLFeat 0.9.21
 
-# Usage
-First, refer to [Object_Annotations](https://github.com/nusneuromorphic/Object_Annotations) for the ground truth of the dynamically captured data of the event-camera dataset used for training (first 500ms).
-
-Then, compile and run the "getDescripter" executable.
+# How to run the example?
+- Edit `CMakeLists.txt` to set the correct path to VLFeat root.
+- Build.
+```
+  $ cd eTLD
+  $ mkdir build && cd build
+  $ cmake ..
+  $ make
+```
+- Run.
+```
+  $ ./ETLDDesc
+```
+# How to use?
+- Include source and include files into your project.
+- Create an ETLDDesc object.
+```
+ETLDDesc eTLDdesc(sensor_dims, vocab_size);
+```
+- Train from event data and ROI.
+```
+eTLDdesc.train(initial_TD, ROItopLeftX, ROItopLeftY, ROIboxSizeX, ROIboxSizeY, false);
+```
+- Track and visualize.
+```
+eTLDdesc.track(test_TD, false, true);
+```
 
 ## Citation ##
-Bharath Ramesh, Shihao Zhang, Hong Yang, Andres Ussa, Matthew Ong, Garrick Orchard and Cheng Xiang "e-TLD: Event-based Framework for Dynamic Object Tracking" arXiv:2009.00855 [cs.CV], 2020.
+Bharath Ramesh, Shihao Zhang, Hong Yang, Andres Ussa, Matthew Ong, Garrick Orchard and Cheng Xiang "e-TLD: Event-based Framework for Dynamic Object Tracking," in IEEE Transactions on Circuits and Systems for Video Technology, doi: 10.1109/TCSVT.2020.3044287.
 
 ```bibtex
-@misc{ramesh2020etld,
-    title={e-TLD: Event-based Framework for Dynamic Object Tracking},
-    author={Bharath Ramesh and Shihao Zhang and Hong Yang and Andres Ussa and Matthew Ong and Garrick Orchard and Cheng Xiang},
-    year={2020},
-    eprint={2009.00855},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
+@ARTICLE{9292994,
+  author={B. {Ramesh} and S. {Zhang} and H. {Yang} and A. {Ussa} and M. {Ong} and G. {Orchard} and C. {Xiang}},
+  journal={IEEE Transactions on Circuits and Systems for Video Technology}, 
+  title={e-TLD: Event-based Framework for Dynamic Object Tracking}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={1-1},
+  doi={10.1109/TCSVT.2020.3044287}}
 }
 ```
