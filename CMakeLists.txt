@@ -37,6 +37,9 @@ add_library(vlfeat
 include_directories(${VLFEATROOT}/vl)
 
 find_package(OpenCV 3.3 REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
+add_definitions(${OpenCV_DEFINITIONS})
 find_package(Threads)
 
 add_executable (ETLDDesc example/loadandtrack.cpp)
