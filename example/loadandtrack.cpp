@@ -1,5 +1,6 @@
 #include <iostream>
 #include "ETLDDesc.h"
+#include <tuple>
 
 int main () {
     // for DAVIS240c
@@ -23,6 +24,17 @@ int main () {
 
     std::string test_TD = "../sample_td/monitor_later.txt";
     eTLDdesc.track(test_TD, false, true);
+
+    for (auto & track_it : eTLDdesc.tracks_out) {
+        std::tuple<int,int,int,int> boundingBox;
+        double ts;
+        std::tie (ts, boundingBox) = track_it;
+        std::cout << "Found Bounding Box with top Left coordinates: ("
+            << std::get<0>(boundingBox) << "," << std::get<1>(boundingBox)
+            << ") and width= " << std::get<2>(boundingBox)
+            << ", height= " << std::get<3>(boundingBox)
+            << " at Ts= " << ts << '\n';
+    }
 
     std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Done!\n";
     return 0;

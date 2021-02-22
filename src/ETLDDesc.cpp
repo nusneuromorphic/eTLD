@@ -373,6 +373,7 @@ void ETLDDesc::track(std::string later_TD, bool verbose, bool show_window)
     int origBB_topLeftY = ROItopLeftY_;
     int padBB_topLeftX = origBB_topLeftX - kPadding;
     int padBB_topLeftY = origBB_topLeftY - kPadding;
+    tracks_out.clear();
 
     const double * model = vl_svm_get_model(svm);
     double bias = vl_svm_get_bias(svm);
@@ -546,6 +547,10 @@ void ETLDDesc::track(std::string later_TD, bool verbose, bool show_window)
                     classificationCount++;
 
                 }
+                std::tuple<int,int,int,int> boundingBoxDims (origBB_topLeftX, origBB_topLeftY, origBB_boxSizeX_, origBB_boxSizeY_);
+                std::tuple<double,std::tuple<int,int,int,int >> current_track (ts, boundingBoxDims);
+                tracks_out.push_back(current_track);
+
                 if (show_window) {
                     // Display Sliding Window
                     for (int i = 0; i < dims_.first; i++) {

@@ -21,6 +21,7 @@ class ETLDDesc{
         void train(std::string initial_TD, int ROItopLeftX, int ROItopLeftY, int ROIboxSizeX, int ROIboxSizeY, bool verbose);
         void track(std::string initial_TD, bool verbose, bool show_window);
         void getDesctriptors_CountMat(std::vector<double> &desc, const int cur_loc_y, const int cur_loc_x, Matrix &t_ring, Matrix &t_wedge);
+        std::vector<std::tuple<double,std::tuple<int,int,int,int >>> tracks_out;
     private:
         const int kQueueSize_ {5000};
         const int kBootstrap_ {12000};
